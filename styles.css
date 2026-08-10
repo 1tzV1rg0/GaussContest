@@ -22,10 +22,14 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    linear-gradient(90deg, rgba(18, 100, 90, 0.05) 1px, transparent 1px),
-    linear-gradient(rgba(18, 100, 90, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(18, 100, 90, 0.1) 1px, transparent 1px),
+    linear-gradient(rgba(18, 100, 90, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(217, 154, 33, 0.08) 1px, transparent 1px),
+    linear-gradient(rgba(217, 154, 33, 0.06) 1px, transparent 1px),
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.88), rgba(244, 247, 245, 0.38) 42%, rgba(244, 247, 245, 0.76) 100%),
     var(--page);
-  background-size: 28px 28px;
+  background-position: center top;
+  background-size: 28px 28px, 28px 28px, 140px 140px, 140px 140px, auto, auto;
   color: var(--ink);
   font-family: var(--font-ui);
 }

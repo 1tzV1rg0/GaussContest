@@ -545,7 +545,7 @@ function renderQuestion() {
 
   $("contestTitle").textContent = contest.title;
   $("contestMeta").textContent = !state.courseStarted
-    ? "Complete contest setup before starting the question flow."
+    ? "MathCon: The best website for Gauss contest practice!"
     : inTimedContest
     ? `${questions.length} contest item${questions.length === 1 ? "" : "s"} shown. Answers are saved until you finish.`
     : `${questions.length} practice item${questions.length === 1 ? "" : "s"} shown. Official PDFs open in a new tab.`;

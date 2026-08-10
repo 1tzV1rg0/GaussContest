@@ -58,9 +58,14 @@ button.secondary,
 }
 
 button.is-active,
-.contest-strip button.is-active {
+.contest-strip button.is-active,
+.category-grid button.is-active {
   background: var(--accent);
   color: #fff;
+}
+
+.category-grid button.is-active span {
+  color: #e7f2ee;
 }
 
 button:focus-visible,

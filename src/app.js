@@ -339,7 +339,7 @@ function renderCategoryCards() {
   const contestQuestions = allQuestionsForSelectedContest();
   $("categoryCards").innerHTML = state.data.categories.map((category) => {
     const count = contestQuestions.filter((question) => question.primaryCategory === category).length;
-    return `<button type="button" data-category="${category}"><strong>${category}</strong><span>${count} available</span></button>`;
+    return `<button type="button" class="${state.category === category ? "is-active" : ""}" data-category="${category}"><strong>${category}</strong><span>${count} available</span></button>`;
   }).join("");
 }
 
@@ -374,6 +374,17 @@ function exitActiveSessionForNavigation() {
   if (!state.sessionActive) return;
   state.sessionActive = false;
   state.paused = false;
+}
+
+function startCategoryPractice(category) {
+  exitActiveSessionForNavigation();
+  state.mode = "study";
+  state.category = category;
+  state.part = "all";
+  state.status = "all";
+  state.currentIndex = 0;
+  saveState();
+  render();
 }
 
 function startContest() {
@@ -444,11 +455,7 @@ function bindEvents() {
     render();
   });
   $("categoryFilter").addEventListener("change", (event) => {
-    exitActiveSessionForNavigation();
-    state.category = event.target.value;
-    state.currentIndex = 0;
-    saveState();
-    render();
+    startCategoryPractice(event.target.value);
   });
   $("partFilter").addEventListener("change", (event) => {
     exitActiveSessionForNavigation();
@@ -528,11 +535,7 @@ function bindEvents() {
   $("categoryCards").addEventListener("click", (event) => {
     const button = event.target.closest("[data-category]");
     if (!button) return;
-    exitActiveSessionForNavigation();
-    state.category = button.dataset.category;
-    state.currentIndex = 0;
-    saveState();
-    render();
+    startCategoryPractice(button.dataset.category);
   });
   $("answerGrid").addEventListener("click", (event) => {
     const button = event.target.closest("[data-jump-id]");

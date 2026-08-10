@@ -72,87 +72,109 @@ function scoreAttempt(questions, attempts) {
 }
 
 function buildPracticeQuestions(data) {
-  const templates = [
-    {
-      part: "A",
-      pointValue: 5,
-      category: "Number Sense & Arithmetic",
-      prompt: (contest) => `Practice drill for ${contest.title}: What is ${contest.grade * 6} + ${contest.year % 100}?`,
-      choices: (contest) => {
-        const answer = contest.grade * 6 + (contest.year % 100);
-        return { A: String(answer - 5), B: String(answer - 1), C: String(answer), D: String(answer + 3), E: String(answer + 8) };
-      },
-      answer: "C",
-      solution: (contest) => `Compute ${contest.grade * 6} + ${contest.year % 100} = ${contest.grade * 6 + (contest.year % 100)}.`
-    },
-    {
-      part: "A",
-      pointValue: 5,
-      category: "Algebra & Patterns",
-      prompt: (contest) => `A pattern starts ${contest.grade}, ${contest.grade + 3}, ${contest.grade + 6}. What is the fifth term?`,
-      choices: (contest) => {
-        const answer = contest.grade + 12;
-        return { A: String(answer - 6), B: String(answer - 3), C: String(answer), D: String(answer + 3), E: String(answer + 6) };
-      },
-      answer: "C",
-      solution: (contest) => `The pattern adds 3 each time, so the fifth term is ${contest.grade} + 4 x 3 = ${contest.grade + 12}.`
-    },
-    {
-      part: "B",
-      pointValue: 6,
-      category: "Geometry & Measurement",
-      prompt: (contest) => `A rectangle has sides ${contest.grade + 2} cm and ${contest.grade - 2} cm. What is its perimeter?`,
-      choices: (contest) => {
-        const answer = 4 * contest.grade;
-        return { A: `${answer - 4} cm`, B: `${answer - 2} cm`, C: `${answer} cm`, D: `${answer + 4} cm`, E: `${answer * 2} cm` };
-      },
-      answer: "C",
-      solution: (contest) => `Perimeter is 2(length + width) = 2(${contest.grade + 2} + ${contest.grade - 2}) = ${4 * contest.grade} cm.`
-    },
-    {
-      part: "B",
-      pointValue: 6,
-      category: "Counting, Probability & Statistics",
-      prompt: () => "A spinner has 2 red sections, 3 blue sections, and 5 green sections. What is the probability of landing on blue?",
-      choices: () => ({ A: "1/5", B: "3/10", C: "1/2", D: "3/5", E: "7/10" }),
-      answer: "B",
-      solution: () => "There are 10 equal sections and 3 are blue, so the probability is 3/10."
-    },
-    {
-      part: "C",
-      pointValue: 8,
-      category: "Logic & Problem Solving",
-      prompt: () => "In a code, every shaded shape is a circle, and no circle is a square. Which statement must be true?",
-      choices: () => ({ A: "Every circle is shaded", B: "No outlined shape is a circle", C: "Every shaded shape is outlined", D: "A shaded square is possible", E: "A shaded shape cannot be a square" }),
-      answer: "E",
-      solution: () => "If every shaded shape is a circle, then a shaded shape cannot be a square."
-    }
-  ];
-
   const existing = data.questions || [];
   const generated = [];
-  for (const contest of data.contests) {
-    for (const [index, template] of templates.entries()) {
-      if (existing.some((question) => question.contestId === contest.id && question.primaryCategory === template.category)) continue;
-      generated.push({
-        id: `drill-${contest.id}-${index + 1}`,
-        contestId: contest.id,
-        number: index + 1,
-        part: template.part,
-        pointValue: template.pointValue,
-        prompt: template.prompt(contest),
-        choices: template.choices(contest),
-        correctAnswer: template.answer,
-        solutionText: template.solution(contest),
-        primaryCategory: template.category,
-        secondaryTags: ["local drill"],
-        categoryConfidence: 1,
-        reviewStatus: "reviewed",
-        sourcePageReference: "Locally authored practice drill. Open official CEMC PDFs for original contest questions.",
-        sourceUrl: contest.contestPdfUrl,
-        difficulty: template.part === "C" ? "challenge" : template.part === "B" ? "medium" : "warmup"
-      });
+  const letters = ["A", "B", "C", "D", "E"];
+  const categories = data.categories;
+
+  function partFor(number) {
+    if (number <= 10) return "A";
+    if (number <= 20) return "B";
+    return "C";
+  }
+
+  function makeChoices(answer, seed, formatter = (value) => String(value)) {
+    const deltas = [-9, -4, -1, 3, 7, 11, -13, 15];
+    const values = [answer];
+    for (const delta of deltas) {
+      const value = answer + delta + (seed % 3);
+      if (value > 0 && !values.includes(value)) values.push(value);
+      if (values.length === 5) break;
     }
+    while (values.length < 5) values.push(answer + values.length * 5 + seed);
+
+    const correctIndex = seed % 5;
+    const ordered = values.slice(1, 5);
+    ordered.splice(correctIndex, 0, answer);
+    return {
+      choices: Object.fromEntries(letters.map((letter, index) => [letter, formatter(ordered[index])])),
+      answer: letters[correctIndex]
+    };
+  }
+
+  function generatedQuestion(contest, number) {
+    const seed = (contest.year - 2010) * 13 + contest.grade * 17 + number * 19;
+    const part = partFor(number);
+    const category = categories[Math.floor((number - 1) / 5) % categories.length];
+    const pointValue = PART_POINTS[part];
+    let prompt;
+    let solutionText;
+    let choiceData;
+
+    if (category === "Number Sense & Arithmetic") {
+      const packs = contest.grade + number;
+      const each = (contest.year % 10) + 4 + (number % 3);
+      const bonus = contest.grade * 2 + number;
+      const answer = packs * each + bonus;
+      prompt = `${contest.title} local drill Q${number}: ${packs} practice packs each contain ${each} cards. The teacher adds ${bonus} extra cards. How many cards are there altogether?`;
+      solutionText = `${packs} x ${each} + ${bonus} = ${answer}.`;
+      choiceData = makeChoices(answer, seed);
+    } else if (category === "Algebra & Patterns") {
+      const first = contest.grade + (contest.year % 7) + number;
+      const step = 2 + (number % 5);
+      const term = 4 + (number % 4);
+      const answer = first + (term - 1) * step;
+      prompt = `A pattern starts at ${first} and increases by ${step} each time. What is term ${term}?`;
+      solutionText = `Term ${term} is ${first} + ${term - 1} x ${step} = ${answer}.`;
+      choiceData = makeChoices(answer, seed);
+    } else if (category === "Geometry & Measurement") {
+      const length = contest.grade + 3 + (number % 6);
+      const width = 4 + (contest.year % 5) + (number % 3);
+      const answer = 2 * (length + width);
+      prompt = `A rectangle has length ${length} cm and width ${width} cm. What is its perimeter?`;
+      solutionText = `The perimeter is 2(${length} + ${width}) = ${answer} cm.`;
+      choiceData = makeChoices(answer, seed, (value) => `${value} cm`);
+    } else if (category === "Counting, Probability & Statistics") {
+      const red = 2 + (number % 4);
+      const blue = 3 + (contest.grade % 3);
+      const green = 4 + (contest.year % 4);
+      const answer = red + blue;
+      const total = red + blue + green;
+      prompt = `A bag has ${red} red tiles, ${blue} blue tiles, and ${green} green tiles. How many tiles are not green?`;
+      solutionText = `The tiles that are not green are red or blue: ${red} + ${blue} = ${answer}. There are ${total} tiles total.`;
+      choiceData = makeChoices(answer, seed);
+    } else {
+      const start = 1 + (seed % 5);
+      const every = 2 + (number % 4);
+      const turns = 4 + (contest.grade % 3);
+      const answer = start + every * turns;
+      prompt = `Mira starts on space ${start}. She moves forward ${every} spaces on each of ${turns} turns. Which space is she on after the last turn?`;
+      solutionText = `After ${turns} turns, Mira moves ${every} x ${turns} = ${every * turns} spaces, so she lands on ${answer}.`;
+      choiceData = makeChoices(answer, seed);
+    }
+
+    return {
+      id: `drill-${contest.id}-${number}`,
+      contestId: contest.id,
+      number,
+      part,
+      pointValue,
+      prompt,
+      choices: choiceData.choices,
+      correctAnswer: choiceData.answer,
+      solutionText,
+      primaryCategory: category,
+      secondaryTags: ["local drill"],
+      categoryConfidence: 1,
+      reviewStatus: "reviewed",
+      sourcePageReference: "Locally authored practice drill. Open official CEMC PDFs for original contest questions.",
+      sourceUrl: contest.contestPdfUrl,
+      difficulty: part === "C" ? "challenge" : part === "B" ? "medium" : "warmup"
+    };
+  }
+
+  for (const contest of data.contests) {
+    for (let number = 1; number <= 25; number += 1) generated.push(generatedQuestion(contest, number));
   }
   return { ...data, questions: [...existing, ...generated] };
 }

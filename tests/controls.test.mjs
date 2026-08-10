@@ -16,3 +16,10 @@ test("category practice resets conflicting filters and highlights active categor
   assert.match(app, /startCategoryPractice\(button\.dataset\.category\)/);
   assert.match(app, /state\.category === category \? "is-active" : ""/);
 });
+
+test("local practice generator builds full varied contest sets", async () => {
+  const app = await readFile("src/app.js", "utf8");
+  assert.match(app, /for \(let number = 1; number <= 25; number \+= 1\)/);
+  assert.match(app, /Math\.floor\(\(number - 1\) \/ 5\) % categories\.length/);
+  assert.match(app, /seed = \(contest\.year - 2010\) \* 13 \+ contest\.grade \* 17 \+ number \* 19/);
+});

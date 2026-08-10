@@ -340,6 +340,12 @@ h2 {
   color: #fff;
 }
 
+.answer-grid .locked {
+  background: var(--accent-3);
+  border-color: var(--accent-3);
+  color: #17202a;
+}
+
 .meter {
   display: grid;
   gap: 4px;

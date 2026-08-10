@@ -308,22 +308,23 @@ function renderQuestion() {
   }
 
   const attempt = state.attempts[question.id] || {};
+  const lockedBySolution = Boolean(attempt.solutionRevealed);
   $("questionBadge").textContent = `Question ${question.number} - Part ${question.part} - ${question.pointValue} pts - ${question.primaryCategory}`;
   $("bookmarkQuestion").textContent = attempt.bookmarked ? "*" : "+";
   $("questionPrompt").textContent = question.prompt;
   $("choices").innerHTML = choices.map((choice) => `
     <label class="choice ${attempt.selectedAnswer === choice ? "selected" : ""}">
-      <input type="radio" name="answer" value="${choice}" ${attempt.selectedAnswer === choice ? "checked" : ""}>
+      <input type="radio" name="answer" value="${choice}" ${attempt.selectedAnswer === choice ? "checked" : ""} ${lockedBySolution ? "disabled" : ""}>
       <strong>${choice}</strong>
       <span>${question.choices[choice]}</span>
     </label>
   `).join("");
   $("notes").value = attempt.notes || "";
-  $("feedback").textContent = attempt.feedback || "";
+  $("feedback").textContent = lockedBySolution ? `${attempt.feedback || question.solutionText} This question is locked because the solution was revealed.` : attempt.feedback || "";
   if (inTimedContest && attempt.selectedAnswer) $("feedback").textContent = "Answer saved. Finish the contest to review feedback and solutions.";
   $("sourceLinks").innerHTML = sourceLinkMarkup(contest, question);
-  $("showSolution").disabled = inTimedContest;
-  $("submitAnswer").disabled = false;
+  $("showSolution").disabled = inTimedContest || lockedBySolution;
+  $("submitAnswer").disabled = lockedBySolution;
   $("submitAnswer").textContent = inTimedContest ? "Save" : "Check";
 }
 
@@ -350,7 +351,7 @@ function renderSummary() {
 
   $("answerGrid").innerHTML = questions.map((question) => {
     const attempt = state.attempts[question.id] || {};
-    const status = !attempt.selectedAnswer ? "open" : attempt.selectedAnswer === question.correctAnswer ? "right" : "wrong";
+    const status = attempt.solutionRevealed ? "locked" : !attempt.selectedAnswer ? "open" : attempt.selectedAnswer === question.correctAnswer ? "right" : "wrong";
     return `<button type="button" class="${status}" data-jump-id="${question.id}" title="Question ${question.number}">${question.number}</button>`;
   }).join("");
 
@@ -530,6 +531,10 @@ function bindEvents() {
   });
   $("choices").addEventListener("change", (event) => {
     const question = visibleQuestions()[state.currentIndex];
+    if (!question || state.attempts[question.id]?.solutionRevealed) {
+      renderQuestion();
+      return;
+    }
     setAttempt(question.id, { selectedAnswer: event.target.value, elapsedSeconds: state.elapsedSeconds });
     if (state.mode === "timed" && state.sessionActive) {
       setAttempt(question.id, { feedback: "Answer saved. Finish the contest to review feedback and solutions." });
@@ -556,7 +561,7 @@ function bindEvents() {
   $("showSolution").addEventListener("click", () => {
     const question = visibleQuestions()[state.currentIndex];
     if (!question) return;
-    setAttempt(question.id, { feedback: question.solutionText });
+    setAttempt(question.id, { feedback: question.solutionText, solutionRevealed: true });
     render();
   });
   $("nextQuestion").addEventListener("click", () => {

@@ -33,3 +33,14 @@ test("contest setup appears before the question flow starts", async () => {
   assert.match(app, /function beginPractice\(\)/);
   assert.match(app, /"practiceCourse"\)\.classList\.toggle\("is-hidden", !state\.courseStarted\)/);
 });
+
+test("revealing a solution locks the question against later answers", async () => {
+  const app = await readFile("src/app.js", "utf8");
+  const css = await readFile("styles.css", "utf8");
+  assert.match(app, /solutionRevealed: true/);
+  assert.match(app, /lockedBySolution/);
+  assert.match(app, /state\.attempts\[question\.id\]\?\.solutionRevealed/);
+  assert.match(app, /lockedBySolution \? "disabled" : ""/);
+  assert.match(app, /attempt\.solutionRevealed \? "locked"/);
+  assert.match(css, /\.answer-grid \.locked/);
+});

@@ -1,6 +1,7 @@
-import { scoreAttempt } from "./scoring.js";
-
 const storageKey = "gauss-practice-state-v1";
+const PART_POINTS = { A: 5, B: 6, C: 8 };
+const UNANSWERED_POINTS = 2;
+const UNANSWERED_LIMIT = 10;
 const state = {
   data: null,
   grade: 7,
@@ -18,6 +19,142 @@ const state = {
 const $ = (id) => document.getElementById(id);
 const choices = ["A", "B", "C", "D", "E"];
 
+function scoreAttempt(questions, attempts) {
+  let correct = 0;
+  let incorrect = 0;
+  let unanswered = 0;
+  let unansweredBonusCount = 0;
+  let pointsEarned = 0;
+  let totalPossible = 0;
+  const byPart = {};
+  const byCategory = {};
+
+  for (const question of questions) {
+    const points = question.pointValue || PART_POINTS[question.part] || 0;
+    const attempt = attempts[question.id] || {};
+    const selected = attempt.selectedAnswer || "";
+    const part = question.part;
+    const category = question.primaryCategory;
+
+    totalPossible += points;
+    byPart[part] ||= { correct: 0, incorrect: 0, unanswered: 0, pointsEarned: 0, totalPossible: 0 };
+    byCategory[category] ||= { correct: 0, incorrect: 0, unanswered: 0, pointsEarned: 0, totalPossible: 0 };
+    byPart[part].totalPossible += points;
+    byCategory[category].totalPossible += points;
+
+    if (!selected) {
+      unanswered += 1;
+      byPart[part].unanswered += 1;
+      byCategory[category].unanswered += 1;
+      if (unansweredBonusCount < UNANSWERED_LIMIT) {
+        pointsEarned += UNANSWERED_POINTS;
+        byPart[part].pointsEarned += UNANSWERED_POINTS;
+        byCategory[category].pointsEarned += UNANSWERED_POINTS;
+        unansweredBonusCount += 1;
+      }
+    } else if (selected === question.correctAnswer) {
+      correct += 1;
+      pointsEarned += points;
+      byPart[part].correct += 1;
+      byPart[part].pointsEarned += points;
+      byCategory[category].correct += 1;
+      byCategory[category].pointsEarned += points;
+    } else {
+      incorrect += 1;
+      byPart[part].incorrect += 1;
+      byCategory[category].incorrect += 1;
+    }
+  }
+
+  return { correct, incorrect, unanswered, pointsEarned, totalPossible, byPart, byCategory };
+}
+
+function buildPracticeQuestions(data) {
+  const templates = [
+    {
+      part: "A",
+      pointValue: 5,
+      category: "Number Sense & Arithmetic",
+      prompt: (contest) => `Practice drill for ${contest.title}: What is ${contest.grade * 6} + ${contest.year % 100}?`,
+      choices: (contest) => {
+        const answer = contest.grade * 6 + (contest.year % 100);
+        return { A: String(answer - 5), B: String(answer - 1), C: String(answer), D: String(answer + 3), E: String(answer + 8) };
+      },
+      answer: "C",
+      solution: (contest) => `Compute ${contest.grade * 6} + ${contest.year % 100} = ${contest.grade * 6 + (contest.year % 100)}.`
+    },
+    {
+      part: "A",
+      pointValue: 5,
+      category: "Algebra & Patterns",
+      prompt: (contest) => `A pattern starts ${contest.grade}, ${contest.grade + 3}, ${contest.grade + 6}. What is the fifth term?`,
+      choices: (contest) => {
+        const answer = contest.grade + 12;
+        return { A: String(answer - 6), B: String(answer - 3), C: String(answer), D: String(answer + 3), E: String(answer + 6) };
+      },
+      answer: "C",
+      solution: (contest) => `The pattern adds 3 each time, so the fifth term is ${contest.grade} + 4 x 3 = ${contest.grade + 12}.`
+    },
+    {
+      part: "B",
+      pointValue: 6,
+      category: "Geometry & Measurement",
+      prompt: (contest) => `A rectangle has sides ${contest.grade + 2} cm and ${contest.grade - 2} cm. What is its perimeter?`,
+      choices: (contest) => {
+        const answer = 4 * contest.grade;
+        return { A: `${answer - 4} cm`, B: `${answer - 2} cm`, C: `${answer} cm`, D: `${answer + 4} cm`, E: `${answer * 2} cm` };
+      },
+      answer: "C",
+      solution: (contest) => `Perimeter is 2(length + width) = 2(${contest.grade + 2} + ${contest.grade - 2}) = ${4 * contest.grade} cm.`
+    },
+    {
+      part: "B",
+      pointValue: 6,
+      category: "Counting, Probability & Statistics",
+      prompt: () => "A spinner has 2 red sections, 3 blue sections, and 5 green sections. What is the probability of landing on blue?",
+      choices: () => ({ A: "1/5", B: "3/10", C: "1/2", D: "3/5", E: "7/10" }),
+      answer: "B",
+      solution: () => "There are 10 equal sections and 3 are blue, so the probability is 3/10."
+    },
+    {
+      part: "C",
+      pointValue: 8,
+      category: "Logic & Problem Solving",
+      prompt: () => "In a code, every shape is either shaded or outlined, and every shaded shape is a circle. Which statement must be true?",
+      choices: () => ({ A: "Every circle is shaded", B: "No outlined shape is a circle", C: "Every shaded shape is not outlined", D: "A shaded square is possible", E: "A shaded shape cannot be a square" }),
+      answer: "E",
+      solution: () => "If every shaded shape is a circle, then a shaded shape cannot be a square."
+    }
+  ];
+
+  const existing = data.questions || [];
+  const generated = [];
+  for (const contest of data.contests) {
+    for (const [index, template] of templates.entries()) {
+      if (existing.some((question) => question.contestId === contest.id && question.primaryCategory === template.category)) continue;
+      generated.push({
+        id: `drill-${contest.id}-${index + 1}`,
+        contestId: contest.id,
+        number: index + 1,
+        part: template.part,
+        pointValue: template.pointValue,
+        prompt: template.prompt(contest),
+        choices: template.choices(contest),
+        correctAnswer: template.answer,
+        solutionText: template.solution(contest),
+        primaryCategory: template.category,
+        secondaryTags: ["local drill"],
+        categoryConfidence: 1,
+        reviewStatus: "reviewed",
+        sourcePageReference: "Locally authored practice drill. Open official CEMC PDFs for original contest questions.",
+        sourceUrl: contest.contestPdfUrl,
+        difficulty: template.part === "C" ? "challenge" : template.part === "B" ? "medium" : "warmup"
+      });
+    }
+  }
+  return { ...data, questions: [...existing, ...generated] };
+}
+
 function loadState() {
   try {
     Object.assign(state, JSON.parse(localStorage.getItem(storageKey)) || {});
@@ -29,6 +166,24 @@ function loadState() {
 function saveState() {
   const { data, ...persisted } = state;
   localStorage.setItem(storageKey, JSON.stringify(persisted));
+}
+
+function normalizeState() {
+  if (![7, 8].includes(Number(state.grade))) state.grade = 7;
+  state.grade = Number(state.grade);
+
+  const yearsForGrade = state.data.contests
+    .filter((contest) => contest.grade === state.grade)
+    .map((contest) => contest.year);
+  if (!yearsForGrade.includes(Number(state.year))) state.year = Math.max(...yearsForGrade);
+  state.year = Number(state.year);
+
+  if (!state.data.categories.includes(state.category) && state.category !== "all") state.category = "all";
+  if (!["all", "A", "B", "C"].includes(state.part)) state.part = "all";
+  if (!["all", "unanswered", "correct", "incorrect", "bookmarked"].includes(state.status)) state.status = "all";
+  if (!["study", "timed"].includes(state.mode)) state.mode = "study";
+  if (!Number.isFinite(Number(state.currentIndex)) || state.currentIndex < 0) state.currentIndex = 0;
+  state.currentIndex = Number(state.currentIndex);
 }
 
 function currentContest() {
@@ -73,6 +228,7 @@ function hydrateControls() {
     { value: "B", label: "Part B" },
     { value: "C", label: "Part C" }
   ], state.part);
+  $("statusFilter").value = state.status;
 }
 
 function setAttempt(questionId, patch) {
@@ -108,7 +264,7 @@ function renderQuestion() {
 
   const attempt = state.attempts[question.id] || {};
   $("questionBadge").textContent = `Question ${question.number} - Part ${question.part} - ${question.pointValue} pts - ${question.primaryCategory}`;
-  $("bookmarkQuestion").textContent = attempt.bookmarked ? "★" : "☆";
+  $("bookmarkQuestion").textContent = attempt.bookmarked ? "*" : "+";
   $("questionPrompt").textContent = question.prompt;
   $("choices").innerHTML = choices.map((choice) => `
     <label class="choice ${attempt.selectedAnswer === choice ? "selected" : ""}">
@@ -336,8 +492,12 @@ function bindEvents() {
 
 async function init() {
   loadState();
-  const response = await fetch("data/gauss-metadata.json");
-  state.data = await response.json();
+  if (!window.GAUSS_DATA) {
+    $("contestMeta").textContent = "Practice data could not load. Start the local server with npm start and reopen the app.";
+    return;
+  }
+  state.data = buildPracticeQuestions(window.GAUSS_DATA);
+  normalizeState();
   bindEvents();
   render();
   setInterval(() => {

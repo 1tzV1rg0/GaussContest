@@ -12,7 +12,7 @@ npm start
 
 Then open `http://localhost:4173`.
 
-No install step is required for the first version because the app uses only browser JavaScript and Node's built-in test runner.
+No install step is required for the first version because the app uses only browser JavaScript and Node's built-in test runner. The page also has an embedded metadata bootstrap so controls can initialize if `index.html` is opened directly, but the local server is recommended.
 
 ## Test
 

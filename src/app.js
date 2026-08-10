@@ -111,6 +111,7 @@ function buildPracticeQuestions(data) {
     let prompt;
     let solutionText;
     let choiceData;
+    let visual;
 
     if (category === "Number Sense & Arithmetic") {
       const packs = contest.grade + number;
@@ -120,6 +121,7 @@ function buildPracticeQuestions(data) {
       prompt = `${contest.title} local drill Q${number}: ${packs} practice packs each contain ${each} cards. The teacher adds ${bonus} extra cards. How many cards are there altogether?`;
       solutionText = `${packs} x ${each} + ${bonus} = ${answer}.`;
       choiceData = makeChoices(answer, seed);
+      visual = { type: "groups", title: "Practice packs", count: Math.min(packs, 18), perGroup: each, bonus };
     } else if (category === "Algebra & Patterns") {
       const first = contest.grade + (contest.year % 7) + number;
       const step = 2 + (number % 5);
@@ -128,6 +130,7 @@ function buildPracticeQuestions(data) {
       prompt = `A pattern starts at ${first} and increases by ${step} each time. What is term ${term}?`;
       solutionText = `Term ${term} is ${first} + ${term - 1} x ${step} = ${answer}.`;
       choiceData = makeChoices(answer, seed);
+      visual = { type: "numberLine", title: "Pattern steps", start: first, step, term };
     } else if (category === "Geometry & Measurement") {
       const length = contest.grade + 3 + (number % 6);
       const width = 4 + (contest.year % 5) + (number % 3);
@@ -135,6 +138,7 @@ function buildPracticeQuestions(data) {
       prompt = `A rectangle has length ${length} cm and width ${width} cm. What is its perimeter?`;
       solutionText = `The perimeter is 2(${length} + ${width}) = ${answer} cm.`;
       choiceData = makeChoices(answer, seed, (value) => `${value} cm`);
+      visual = { type: "rectangle", title: "Rectangle dimensions", length, width };
     } else if (category === "Counting, Probability & Statistics") {
       const red = 2 + (number % 4);
       const blue = 3 + (contest.grade % 3);
@@ -144,6 +148,7 @@ function buildPracticeQuestions(data) {
       prompt = `A bag has ${red} red tiles, ${blue} blue tiles, and ${green} green tiles. How many tiles are not green?`;
       solutionText = `The tiles that are not green are red or blue: ${red} + ${blue} = ${answer}. There are ${total} tiles total.`;
       choiceData = makeChoices(answer, seed);
+      visual = { type: "barChart", title: "Tiles by colour", values: [{ label: "Red", value: red }, { label: "Blue", value: blue }, { label: "Green", value: green }] };
     } else {
       const start = 1 + (seed % 5);
       const every = 2 + (number % 4);
@@ -152,6 +157,7 @@ function buildPracticeQuestions(data) {
       prompt = `Mira starts on space ${start}. She moves forward ${every} spaces on each of ${turns} turns. Which space is she on after the last turn?`;
       solutionText = `After ${turns} turns, Mira moves ${every} x ${turns} = ${every * turns} spaces, so she lands on ${answer}.`;
       choiceData = makeChoices(answer, seed);
+      visual = { type: "path", title: "Board movement", start, every, turns, end: answer };
     }
 
     return {
@@ -164,6 +170,7 @@ function buildPracticeQuestions(data) {
       choices: choiceData.choices,
       correctAnswer: choiceData.answer,
       solutionText,
+      visual,
       primaryCategory: category,
       secondaryTags: ["local drill"],
       categoryConfidence: 1,
@@ -178,6 +185,71 @@ function buildPracticeQuestions(data) {
     for (let number = 1; number <= 25; number += 1) generated.push(generatedQuestion(contest, number));
   }
   return { ...data, questions: [...existing, ...generated] };
+}
+
+function renderVisual(visual) {
+  if (!visual) return "";
+  if (visual.type === "rectangle") {
+    return `
+      <figure class="question-visual" aria-label="${visual.title}">
+        <figcaption>${visual.title}</figcaption>
+        <div class="rect-diagram" style="--rect-w:${visual.length}; --rect-h:${visual.width};">
+          <span class="rect-label rect-length">${visual.length} cm</span>
+          <span class="rect-label rect-width">${visual.width} cm</span>
+        </div>
+      </figure>
+    `;
+  }
+
+  if (visual.type === "barChart") {
+    const max = Math.max(...visual.values.map((item) => item.value));
+    return `
+      <figure class="question-visual" aria-label="${visual.title}">
+        <figcaption>${visual.title}</figcaption>
+        <div class="bar-chart">
+          ${visual.values.map((item) => `<div class="bar-row"><span>${item.label}</span><div class="bar-track"><i style="width:${(item.value / max) * 100}%"></i></div><strong>${item.value}</strong></div>`).join("")}
+        </div>
+      </figure>
+    `;
+  }
+
+  if (visual.type === "numberLine") {
+    const values = Array.from({ length: visual.term }, (_, index) => visual.start + index * visual.step);
+    return `
+      <figure class="question-visual" aria-label="${visual.title}">
+        <figcaption>${visual.title}</figcaption>
+        <div class="number-line">
+          ${values.map((value, index) => `<span class="${index === values.length - 1 ? "target" : ""}">${value}</span>`).join("")}
+        </div>
+      </figure>
+    `;
+  }
+
+  if (visual.type === "groups") {
+    return `
+      <figure class="question-visual" aria-label="${visual.title}">
+        <figcaption>${visual.title}</figcaption>
+        <div class="tile-groups">
+          ${Array.from({ length: visual.count }, () => `<span>${visual.perGroup}</span>`).join("")}
+          <strong>+${visual.bonus}</strong>
+        </div>
+      </figure>
+    `;
+  }
+
+  if (visual.type === "path") {
+    const spaces = Array.from({ length: Math.min(visual.end + 1, 24) }, (_, index) => index);
+    return `
+      <figure class="question-visual" aria-label="${visual.title}">
+        <figcaption>${visual.title}</figcaption>
+        <div class="board-path">
+          ${spaces.map((space) => `<span class="${space === visual.start ? "start" : space === visual.end ? "end" : ""}">${space}</span>`).join("")}
+        </div>
+      </figure>
+    `;
+  }
+
+  return "";
 }
 
 function loadState() {
@@ -299,6 +371,7 @@ function renderQuestion() {
   if (!question) {
     $("questionBadge").textContent = "No matching questions";
     $("questionPrompt").textContent = "Adjust filters or choose a different year. Official contest PDFs are still available above.";
+    $("questionVisual").innerHTML = "";
     $("choices").innerHTML = "";
     $("feedback").textContent = "";
     $("sourceLinks").innerHTML = sourceLinkMarkup(contest);
@@ -312,6 +385,7 @@ function renderQuestion() {
   $("questionBadge").textContent = `Question ${question.number} - Part ${question.part} - ${question.pointValue} pts - ${question.primaryCategory}`;
   $("bookmarkQuestion").textContent = attempt.bookmarked ? "*" : "+";
   $("questionPrompt").textContent = question.prompt;
+  $("questionVisual").innerHTML = renderVisual(question.visual);
   $("choices").innerHTML = choices.map((choice) => `
     <label class="choice ${attempt.selectedAnswer === choice ? "selected" : ""}">
       <input type="radio" name="answer" value="${choice}" ${attempt.selectedAnswer === choice ? "checked" : ""} ${lockedBySolution ? "disabled" : ""}>

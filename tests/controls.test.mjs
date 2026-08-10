@@ -44,3 +44,17 @@ test("revealing a solution locks the question against later answers", async () =
   assert.match(app, /attempt\.solutionRevealed \? "locked"/);
   assert.match(css, /\.answer-grid \.locked/);
 });
+
+test("generated questions can include visual diagrams", async () => {
+  const html = await readFile("index.html", "utf8");
+  const app = await readFile("src/app.js", "utf8");
+  const css = await readFile("styles.css", "utf8");
+  assert.match(html, /id="questionVisual"/);
+  assert.match(app, /function renderVisual\(visual\)/);
+  assert.match(app, /type: "barChart"/);
+  assert.match(app, /type: "rectangle"/);
+  assert.match(app, /type: "numberLine"/);
+  assert.match(app, /\$\("questionVisual"\)\.innerHTML = renderVisual\(question\.visual\)/);
+  assert.match(css, /\.question-visual/);
+  assert.match(css, /\.bar-chart/);
+});

@@ -44,6 +44,12 @@ button {
   padding: 0 14px;
 }
 
+button:disabled,
+select:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 button.secondary,
 .contest-strip button,
 .category-grid button {

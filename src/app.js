@@ -13,7 +13,9 @@ const state = {
   currentIndex: 0,
   attempts: {},
   elapsedSeconds: 0,
-  paused: false
+  paused: false,
+  sessionActive: false,
+  sessionContestId: ""
 };
 
 const $ = (id) => document.getElementById(id);
@@ -184,6 +186,12 @@ function normalizeState() {
   if (!["study", "timed"].includes(state.mode)) state.mode = "study";
   if (!Number.isFinite(Number(state.currentIndex)) || state.currentIndex < 0) state.currentIndex = 0;
   state.currentIndex = Number(state.currentIndex);
+  state.elapsedSeconds = Math.max(0, Number(state.elapsedSeconds) || 0);
+  state.sessionActive = Boolean(state.sessionActive);
+  if (state.sessionContestId && !state.data.contests.some((contest) => contest.id === state.sessionContestId)) {
+    state.sessionContestId = "";
+    state.sessionActive = false;
+  }
 }
 
 function currentContest() {
@@ -212,12 +220,20 @@ function allQuestionsForSelectedContest() {
   return state.data.questions.filter((question) => question.contestId === currentContest().id);
 }
 
+function clearSelectedContestAttempts() {
+  const ids = new Set(allQuestionsForSelectedContest().map((question) => question.id));
+  state.attempts = Object.fromEntries(
+    Object.entries(state.attempts).filter(([questionId]) => !ids.has(questionId))
+  );
+}
+
 function fillSelect(select, options, currentValue) {
   select.innerHTML = options.map(({ value, label }) => `<option value="${value}">${label}</option>`).join("");
   select.value = String(currentValue);
 }
 
 function hydrateControls() {
+  const locked = state.mode === "timed" && state.sessionActive;
   fillSelect($("gradeFilter"), [{ value: 7, label: "Grade 7" }, { value: 8, label: "Grade 8" }], state.grade);
   fillSelect($("yearFilter"), [...new Set(state.data.contests.map((contest) => contest.year))]
     .sort((a, b) => b - a).map((year) => ({ value: year, label: year })), state.year);
@@ -229,6 +245,9 @@ function hydrateControls() {
     { value: "C", label: "Part C" }
   ], state.part);
   $("statusFilter").value = state.status;
+  ["gradeFilter", "yearFilter", "categoryFilter", "partFilter", "statusFilter"].forEach((id) => {
+    $(id).disabled = locked;
+  });
 }
 
 function setAttempt(questionId, patch) {
@@ -240,7 +259,7 @@ function renderContestStrip() {
   $("contestStrip").innerHTML = state.data.contests
     .filter((contest) => contest.grade === state.grade)
     .sort((a, b) => b.year - a.year)
-    .map((contest) => `<button type="button" class="${contest.year === state.year ? "is-active" : ""}" data-year="${contest.year}">${contest.year}</button>`)
+    .map((contest) => `<button type="button" class="${contest.year === state.year ? "is-active" : ""}" data-year="${contest.year}" ${state.sessionActive ? "disabled" : ""}>${contest.year}</button>`)
     .join("");
 }
 
@@ -249,9 +268,12 @@ function renderQuestion() {
   if (state.currentIndex >= questions.length) state.currentIndex = 0;
   const question = questions[state.currentIndex];
   const contest = currentContest();
+  const inTimedContest = state.mode === "timed" && state.sessionActive;
 
   $("contestTitle").textContent = contest.title;
-  $("contestMeta").textContent = `${questions.length} practice item${questions.length === 1 ? "" : "s"} shown. Official PDFs open in a new tab.`;
+  $("contestMeta").textContent = inTimedContest
+    ? `${questions.length} contest item${questions.length === 1 ? "" : "s"} shown. Answers are saved until you finish.`
+    : `${questions.length} practice item${questions.length === 1 ? "" : "s"} shown. Official PDFs open in a new tab.`;
 
   if (!question) {
     $("questionBadge").textContent = "No matching questions";
@@ -259,6 +281,8 @@ function renderQuestion() {
     $("choices").innerHTML = "";
     $("feedback").textContent = "";
     $("sourceLinks").innerHTML = sourceLinkMarkup(contest);
+    $("showSolution").disabled = true;
+    $("submitAnswer").disabled = true;
     return;
   }
 
@@ -275,7 +299,11 @@ function renderQuestion() {
   `).join("");
   $("notes").value = attempt.notes || "";
   $("feedback").textContent = attempt.feedback || "";
+  if (inTimedContest && attempt.selectedAnswer) $("feedback").textContent = "Answer saved. Finish the contest to review feedback and solutions.";
   $("sourceLinks").innerHTML = sourceLinkMarkup(contest, question);
+  $("showSolution").disabled = inTimedContest;
+  $("submitAnswer").disabled = false;
+  $("submitAnswer").textContent = inTimedContest ? "Save" : "Check";
 }
 
 function sourceLinkMarkup(contest, question) {
@@ -323,8 +351,11 @@ function renderCategoryCards() {
 function renderTimer() {
   const remaining = state.mode === "timed" ? Math.max(0, 3600 - state.elapsedSeconds) : 3600;
   $("timerText").textContent = formatTime(remaining);
-  $("pauseTimer").disabled = state.mode !== "timed";
+  $("startContest").disabled = state.sessionActive;
+  $("pauseTimer").disabled = state.mode !== "timed" || !state.sessionActive;
+  $("finishContest").disabled = state.mode !== "timed" || !state.sessionActive;
   $("pauseTimer").textContent = state.paused ? "Resume" : "Pause";
+  $("startContest").textContent = state.sessionActive ? "Started" : "Start";
 }
 
 function formatTime(seconds) {
@@ -342,6 +373,30 @@ function render() {
   renderTimer();
   $("studyMode").classList.toggle("is-active", state.mode === "study");
   $("timedMode").classList.toggle("is-active", state.mode === "timed");
+}
+
+function startContest() {
+  state.mode = "timed";
+  state.category = "all";
+  state.part = "all";
+  state.status = "all";
+  state.currentIndex = 0;
+  state.elapsedSeconds = 0;
+  state.paused = false;
+  state.sessionActive = true;
+  state.sessionContestId = currentContest().id;
+  clearSelectedContestAttempts();
+  saveState();
+  render();
+}
+
+function finishContest(message) {
+  if (!state.sessionActive) return;
+  state.sessionActive = false;
+  state.paused = false;
+  saveState();
+  render();
+  if (message) $("feedback").textContent = message;
 }
 
 function exportCsv() {
@@ -410,12 +465,20 @@ function bindEvents() {
   $("choices").addEventListener("change", (event) => {
     const question = visibleQuestions()[state.currentIndex];
     setAttempt(question.id, { selectedAnswer: event.target.value, elapsedSeconds: state.elapsedSeconds });
+    if (state.mode === "timed" && state.sessionActive) {
+      setAttempt(question.id, { feedback: "Answer saved. Finish the contest to review feedback and solutions." });
+    }
     renderQuestion();
   });
   $("submitAnswer").addEventListener("click", () => {
     const question = visibleQuestions()[state.currentIndex];
     if (!question) return;
     const attempt = state.attempts[question.id] || {};
+    if (state.mode === "timed" && state.sessionActive) {
+      setAttempt(question.id, { feedback: attempt.selectedAnswer ? "Answer saved. Finish the contest to review feedback and solutions." : "Choose an answer or leave it blank for unanswered scoring." });
+      render();
+      return;
+    }
     const feedback = !attempt.selectedAnswer
       ? "Choose an answer first, or leave it blank for unanswered scoring."
       : attempt.selectedAnswer === question.correctAnswer
@@ -472,20 +535,25 @@ function bindEvents() {
   $("studyMode").addEventListener("click", () => {
     state.mode = "study";
     state.paused = false;
+    state.sessionActive = false;
     saveState();
     render();
   });
   $("timedMode").addEventListener("click", () => {
     state.mode = "timed";
-    state.elapsedSeconds = 0;
+    state.sessionActive = false;
     state.paused = false;
     saveState();
     render();
   });
+  $("startContest").addEventListener("click", startContest);
   $("pauseTimer").addEventListener("click", () => {
     state.paused = !state.paused;
     saveState();
     renderTimer();
+  });
+  $("finishContest").addEventListener("click", () => {
+    finishContest("Contest finished. You can now check answers, review solutions, and export the summary.");
   });
   $("exportSummary").addEventListener("click", exportCsv);
 }
@@ -501,10 +569,13 @@ async function init() {
   bindEvents();
   render();
   setInterval(() => {
-    if (state.mode === "timed" && !state.paused && state.elapsedSeconds < 3600) {
+    if (state.mode === "timed" && state.sessionActive && !state.paused && state.elapsedSeconds < 3600) {
       state.elapsedSeconds += 1;
       saveState();
       renderTimer();
+      if (state.elapsedSeconds >= 3600) {
+        finishContest("Time is up. Your contest has been submitted.");
+      }
     }
   }, 1000);
 }

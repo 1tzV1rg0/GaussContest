@@ -2,7 +2,7 @@
 
 A compact, rights-conscious practice app for University of Waterloo CEMC Gauss Grade 7 and Grade 8 contest preparation.
 
-The app starts directly in the practice interface. Students and teachers can filter by the only supported grades, year, category, part, and answer status; answer sample practice items; use study or 60-minute timed mode; bookmark questions; keep notes; resume locally; view score breakdowns; export attempts as CSV; and jump to the official CEMC contest, solution, and result PDFs.
+The app starts directly in the practice interface. Students and teachers can filter by the only supported grades, year, category, part, and answer status; answer sample practice items; press Start to begin a 60-minute timed contest; bookmark questions; keep notes; resume locally; view score breakdowns; export attempts as CSV; and jump to the official CEMC contest, solution, and result PDFs.
 
 ## Run Locally
 

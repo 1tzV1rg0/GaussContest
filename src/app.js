@@ -187,10 +187,9 @@ function normalizeState() {
   if (!Number.isFinite(Number(state.currentIndex)) || state.currentIndex < 0) state.currentIndex = 0;
   state.currentIndex = Number(state.currentIndex);
   state.elapsedSeconds = Math.max(0, Number(state.elapsedSeconds) || 0);
-  state.sessionActive = Boolean(state.sessionActive);
+  state.sessionActive = false;
   if (state.sessionContestId && !state.data.contests.some((contest) => contest.id === state.sessionContestId)) {
     state.sessionContestId = "";
-    state.sessionActive = false;
   }
 }
 
@@ -233,7 +232,6 @@ function fillSelect(select, options, currentValue) {
 }
 
 function hydrateControls() {
-  const locked = state.mode === "timed" && state.sessionActive;
   fillSelect($("gradeFilter"), [{ value: 7, label: "Grade 7" }, { value: 8, label: "Grade 8" }], state.grade);
   fillSelect($("yearFilter"), [...new Set(state.data.contests.map((contest) => contest.year))]
     .sort((a, b) => b - a).map((year) => ({ value: year, label: year })), state.year);
@@ -245,9 +243,6 @@ function hydrateControls() {
     { value: "C", label: "Part C" }
   ], state.part);
   $("statusFilter").value = state.status;
-  ["gradeFilter", "yearFilter", "categoryFilter", "partFilter", "statusFilter"].forEach((id) => {
-    $(id).disabled = locked;
-  });
 }
 
 function setAttempt(questionId, patch) {
@@ -259,7 +254,7 @@ function renderContestStrip() {
   $("contestStrip").innerHTML = state.data.contests
     .filter((contest) => contest.grade === state.grade)
     .sort((a, b) => b.year - a.year)
-    .map((contest) => `<button type="button" class="${contest.year === state.year ? "is-active" : ""}" data-year="${contest.year}" ${state.sessionActive ? "disabled" : ""}>${contest.year}</button>`)
+    .map((contest) => `<button type="button" class="${contest.year === state.year ? "is-active" : ""}" data-year="${contest.year}">${contest.year}</button>`)
     .join("");
 }
 
@@ -375,6 +370,12 @@ function render() {
   $("timedMode").classList.toggle("is-active", state.mode === "timed");
 }
 
+function exitActiveSessionForNavigation() {
+  if (!state.sessionActive) return;
+  state.sessionActive = false;
+  state.paused = false;
+}
+
 function startContest() {
   state.mode = "timed";
   state.category = "all";
@@ -424,31 +425,40 @@ function exportCsv() {
 
 function bindEvents() {
   $("gradeFilter").addEventListener("change", (event) => {
+    exitActiveSessionForNavigation();
     state.grade = Number(event.target.value);
     state.year = Math.max(...state.data.contests.filter((contest) => contest.grade === state.grade).map((contest) => contest.year));
+    state.category = "all";
+    state.part = "all";
+    state.status = "all";
     state.currentIndex = 0;
     saveState();
     render();
   });
   $("yearFilter").addEventListener("change", (event) => {
+    exitActiveSessionForNavigation();
     state.year = Number(event.target.value);
+    state.status = "all";
     state.currentIndex = 0;
     saveState();
     render();
   });
   $("categoryFilter").addEventListener("change", (event) => {
+    exitActiveSessionForNavigation();
     state.category = event.target.value;
     state.currentIndex = 0;
     saveState();
     render();
   });
   $("partFilter").addEventListener("change", (event) => {
+    exitActiveSessionForNavigation();
     state.part = event.target.value;
     state.currentIndex = 0;
     saveState();
     render();
   });
   $("statusFilter").addEventListener("change", (event) => {
+    exitActiveSessionForNavigation();
     state.status = event.target.value;
     state.currentIndex = 0;
     saveState();
@@ -457,7 +467,9 @@ function bindEvents() {
   $("contestStrip").addEventListener("click", (event) => {
     const button = event.target.closest("[data-year]");
     if (!button) return;
+    exitActiveSessionForNavigation();
     state.year = Number(button.dataset.year);
+    state.status = "all";
     state.currentIndex = 0;
     saveState();
     render();
@@ -516,6 +528,7 @@ function bindEvents() {
   $("categoryCards").addEventListener("click", (event) => {
     const button = event.target.closest("[data-category]");
     if (!button) return;
+    exitActiveSessionForNavigation();
     state.category = button.dataset.category;
     state.currentIndex = 0;
     saveState();

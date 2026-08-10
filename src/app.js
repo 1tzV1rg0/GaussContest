@@ -77,6 +77,112 @@ function buildPracticeQuestions(data) {
   const generated = [];
   const letters = ["A", "B", "C", "D", "E"];
   const categories = data.categories;
+  const officialAlgebraItems = {
+    7: [
+      {
+        sourceYear: 2025,
+        sourceQuestion: 6,
+        prompt: "From 2025 Gauss Grade 7 Q6: A straight angle is split into angles measuring 130 degrees and x degrees. What is x?",
+        choices: { A: "60", B: "40", C: "50", D: "70", E: "65" },
+        correctAnswer: "C",
+        solutionText: "A straight angle measures 180 degrees, so 130 + x = 180 and x = 50.",
+        visual: { type: "numberLine", title: "Equation balance", start: 130, step: 50, term: 2 },
+        tags: ["linear equation", "angle algebra"]
+      },
+      {
+        sourceYear: 2025,
+        sourceQuestion: 7,
+        prompt: "From 2025 Gauss Grade 7 Q7: The list 3, 15, 8, 8, 9, 9, n has exactly one mode, which is 8. What is n?",
+        choices: { A: "15", B: "9", C: "3", D: "8", E: "10" },
+        correctAnswer: "D",
+        solutionText: "For 8 to be the only mode, it must appear more often than every other value. This happens when n = 8.",
+        visual: { type: "groups", title: "Number frequencies", count: 3, perGroup: 8, bonus: 0 },
+        tags: ["variable", "mode"]
+      },
+      {
+        sourceYear: 2025,
+        sourceQuestion: 13,
+        prompt: "From 2025 Gauss Grade 7 Q13: The repeating pattern 2, 0, 2, 5 is written until there are 50 numbers. How many 5s appear?",
+        choices: { A: "10", B: "11", C: "12", D: "13", E: "25" },
+        correctAnswer: "C",
+        solutionText: "There are 12 complete blocks of four numbers in the first 48 terms, and each block has one 5.",
+        visual: { type: "numberLine", title: "Repeating block", start: 2, step: 0, term: 4 },
+        tags: ["pattern", "sequence"]
+      },
+      {
+        sourceYear: 2025,
+        sourceQuestion: 17,
+        prompt: "From 2025 Gauss Grade 7 Q17: After some fair-coin tosses, 50% are tails. One final tail makes the total 60% tails. How many tosses were made in total?",
+        choices: { A: "3", B: "9", C: "8", D: "5", E: "10" },
+        correctAnswer: "D",
+        solutionText: "Before the final toss, 2 of 4 tosses are tails. After one more tail, 3 of 5 tosses are tails, which is 60%.",
+        visual: { type: "groups", title: "Tail counts", count: 3, perGroup: 1, bonus: 2 },
+        tags: ["percent equation", "working backward"]
+      },
+      {
+        sourceYear: 2025,
+        sourceQuestion: 21,
+        prompt: "From 2025 Gauss Grade 7 Q21: Circles have radii 1 cm, 5 cm, and x cm. Their mean area is 30pi square cm. What is x?",
+        choices: { A: "64", B: "5", C: "24", D: "8", E: "2" },
+        correctAnswer: "D",
+        solutionText: "The sum of areas is 90pi. Since 1pi + 25pi + x^2 pi = 90pi, x^2 = 64 and x = 8.",
+        visual: { type: "numberLine", title: "Solving x squared", start: 1, step: 5, term: 3 },
+        tags: ["equation", "area"]
+      }
+    ],
+    8: [
+      {
+        sourceYear: 2025,
+        sourceQuestion: 5,
+        prompt: "From 2025 Gauss Grade 8 Q5: If 7x - 3 = 60, what is x?",
+        choices: { A: "9", B: "7", C: "10", D: "6", E: "8" },
+        correctAnswer: "A",
+        solutionText: "Add 3 to both sides to get 7x = 63, so x = 9.",
+        visual: { type: "numberLine", title: "Equation balance", start: -3, step: 7, term: 10 },
+        tags: ["linear equation"]
+      },
+      {
+        sourceYear: 2025,
+        sourceQuestion: 11,
+        prompt: "From 2025 Gauss Grade 8 Q11: What number belongs in the box so that 28/32 + 1/box = 1?",
+        choices: { A: "24", B: "-3", C: "7", D: "16", E: "8" },
+        correctAnswer: "E",
+        solutionText: "Since 28/32 needs 4/32 more to make 1, 1/box = 4/32 = 1/8. The box is 8.",
+        visual: { type: "numberLine", title: "Fraction gap", start: 28, step: 4, term: 2 },
+        tags: ["equation", "fractions"]
+      },
+      {
+        sourceYear: 2025,
+        sourceQuestion: 15,
+        prompt: "From 2025 Gauss Grade 8 Q15: Three consecutive ages have mean 13. A fourth student joins and the mean becomes 14. How old is the fourth student?",
+        choices: { A: "15", B: "18", C: "16", D: "14", E: "17" },
+        correctAnswer: "E",
+        solutionText: "The first three ages total 39. Four students with mean 14 total 56, so the fourth student is 56 - 39 = 17.",
+        visual: { type: "barChart", title: "Total ages", values: [{ label: "First three", value: 39 }, { label: "All four", value: 56 }] },
+        tags: ["mean", "unknown value"]
+      },
+      {
+        sourceYear: 2025,
+        sourceQuestion: 16,
+        prompt: "From 2025 Gauss Grade 8 Q16: One dog needs one food bowl, two dogs share one water bowl, and three dogs share one treat bowl. If there are 77 bowls, how many dogs are there?",
+        choices: { A: "35", B: "77", C: "42", D: "11", E: "24" },
+        correctAnswer: "C",
+        solutionText: "For every 6 dogs, there are 6 food bowls, 3 water bowls, and 2 treat bowls, for 11 bowls total. Since 77 = 7 x 11, there are 7 x 6 = 42 dogs.",
+        visual: { type: "groups", title: "Bowl ratio", count: 3, perGroup: 6, bonus: 0 },
+        tags: ["ratio", "equation"]
+      },
+      {
+        sourceYear: 2025,
+        sourceQuestion: 19,
+        prompt: "From 2025 Gauss Grade 8 Q19: How many ordered pairs of positive integers (m, n) satisfy m^2 x n = 2025?",
+        choices: { A: "3", B: "7", C: "4", D: "5", E: "6" },
+        correctAnswer: "E",
+        solutionText: "Using the factorization 2025 = 3^4 x 5^2, there are 6 possible square factors for m^2, so there are 6 ordered pairs.",
+        visual: { type: "barChart", title: "Prime exponents", values: [{ label: "3", value: 4 }, { label: "5", value: 2 }] },
+        tags: ["exponents", "factorization"]
+      }
+    ]
+  };
 
   function partFor(number) {
     if (number <= 10) return "A";
@@ -112,6 +218,7 @@ function buildPracticeQuestions(data) {
     let solutionText;
     let choiceData;
     let visual;
+    let sourceItem;
 
     if (category === "Number Sense & Arithmetic") {
       const packs = contest.grade + number;
@@ -123,44 +230,15 @@ function buildPracticeQuestions(data) {
       choiceData = makeChoices(answer, seed);
       visual = { type: "groups", title: "Practice packs", count: Math.min(packs, 18), perGroup: each, bonus };
     } else if (category === "Algebra & Patterns") {
-      const variant = seed % 4;
-      if (variant === 0) {
-        const multiplier = 2 + (number % 5);
-        const x = contest.grade + 2 + (number % 7);
-        const addend = 3 + (contest.year % 6);
-        const total = multiplier * x + addend;
-        prompt = `Solve for x: ${multiplier}x + ${addend} = ${total}.`;
-        solutionText = `Subtract ${addend} from both sides to get ${multiplier}x = ${total - addend}. Then x = ${x}.`;
-        choiceData = makeChoices(x, seed, (value) => `x = ${value}`);
-        visual = { type: "numberLine", title: "Equation balance", start: addend, step: multiplier, term: x + 1 };
-      } else if (variant === 1) {
-        const x = 2 + (contest.grade % 5) + (number % 4);
-        const coefficient = 3 + (number % 4);
-        const constant = 4 + (contest.year % 5);
-        const answer = coefficient * x - constant;
-        prompt = `If x = ${x}, what is the value of ${coefficient}x - ${constant}?`;
-        solutionText = `Substitute ${x} for x: ${coefficient}(${x}) - ${constant} = ${coefficient * x} - ${constant} = ${answer}.`;
-        choiceData = makeChoices(answer, seed);
-        visual = { type: "groups", title: `${coefficient} groups of x`, count: coefficient, perGroup: x, bonus: -constant };
-      } else if (variant === 2) {
-        const x = contest.grade + 4 + (number % 6);
-        const removed = 2 + (number % 5);
-        const result = x - removed;
-        const answer = x;
-        prompt = `A number x has ${removed} subtracted from it, and the result is ${result}. What is x?`;
-        solutionText = `The equation is x - ${removed} = ${result}. Add ${removed} to both sides: x = ${answer}.`;
-        choiceData = makeChoices(answer, seed, (value) => `x = ${value}`);
-        visual = { type: "numberLine", title: "Undo subtraction", start: result, step: removed, term: 2 };
-      } else {
-        const first = contest.grade + (contest.year % 7) + number;
-        const step = 2 + (number % 5);
-        const term = 4 + (number % 4);
-        const answer = first + (term - 1) * step;
-        prompt = `A pattern follows the rule value = ${first} + ${step}(n - 1). What is the value when n = ${term}?`;
-        solutionText = `Substitute n = ${term}: ${first} + ${step}(${term - 1}) = ${answer}.`;
-        choiceData = makeChoices(answer, seed);
-        visual = { type: "numberLine", title: "Linear rule", start: first, step, term };
-      }
+      const sourceItems = officialAlgebraItems[contest.grade];
+      sourceItem = sourceItems[(contest.year + number) % sourceItems.length];
+      prompt = sourceItem.prompt;
+      solutionText = sourceItem.solutionText;
+      choiceData = {
+        choices: sourceItem.choices,
+        answer: sourceItem.correctAnswer
+      };
+      visual = sourceItem.visual;
     } else if (category === "Geometry & Measurement") {
       const length = contest.grade + 3 + (number % 6);
       const width = 4 + (contest.year % 5) + (number % 3);
@@ -202,11 +280,15 @@ function buildPracticeQuestions(data) {
       solutionText,
       visual,
       primaryCategory: category,
-      secondaryTags: ["local drill"],
+      secondaryTags: category === "Algebra & Patterns" ? ["official CEMC source", ...sourceItem.tags] : ["local drill"],
       categoryConfidence: 1,
       reviewStatus: "reviewed",
-      sourcePageReference: "Locally authored practice drill. Open official CEMC PDFs for original contest questions.",
-      sourceUrl: contest.contestPdfUrl,
+      sourcePageReference: category === "Algebra & Patterns"
+        ? `Official CEMC ${sourceItem.sourceYear} Gauss Grade ${contest.grade}, Question ${sourceItem.sourceQuestion}. Prompt adapted for on-screen practice.`
+        : "Locally authored practice drill. Open official CEMC PDFs for original contest questions.",
+      sourceUrl: category === "Algebra & Patterns"
+        ? `https://cemc.uwaterloo.ca/sites/default/files/documents/${sourceItem.sourceYear}/${sourceItem.sourceYear}Gauss${contest.grade}Contest.pdf`
+        : contest.contestPdfUrl,
       difficulty: part === "C" ? "challenge" : part === "B" ? "medium" : "warmup"
     };
   }

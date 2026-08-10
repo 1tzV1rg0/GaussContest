@@ -61,9 +61,10 @@ test("generated questions can include visual diagrams", async () => {
 
 test("algebra practice includes variable equations", async () => {
   const app = await readFile("src/app.js", "utf8");
-  assert.match(app, /Solve for x:/);
-  assert.match(app, /If x = /);
-  assert.match(app, /x has \$\{removed\} subtracted/);
-  assert.match(app, /value = \$\{first\} \+ \$\{step\}\(n - 1\)/);
-  assert.match(app, /x = \$\{value\}/);
+  assert.match(app, /officialAlgebraItems/);
+  assert.match(app, /From 2025 Gauss Grade 7 Q6/);
+  assert.match(app, /From 2025 Gauss Grade 8 Q5/);
+  assert.match(app, /Official CEMC \$\{sourceItem\.sourceYear\} Gauss Grade/);
+  assert.match(app, /Prompt adapted for on-screen practice/);
+  assert.doesNotMatch(app, /A number x has \$\{removed\} subtracted/);
 });

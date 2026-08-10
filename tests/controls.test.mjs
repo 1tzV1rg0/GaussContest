@@ -19,9 +19,31 @@ test("category practice resets conflicting filters and highlights active categor
 
 test("local practice generator builds full varied contest sets", async () => {
   const app = await readFile("src/app.js", "utf8");
-  assert.match(app, /for \(let number = 1; number <= 25; number \+= 1\)/);
+  assert.match(app, /for \(let number = 1; number <= 100; number \+= 1\)/);
+  assert.match(app, /partFor\(\(\(number - 1\) % 25\) \+ 1\)/);
   assert.match(app, /Math\.floor\(\(number - 1\) \/ 5\) % categories\.length/);
   assert.match(app, /seed = \(contest\.year - 2010\) \* 13 \+ contest\.grade \* 17 \+ number \* 19/);
+});
+
+test("timed contests sample 50 unique questions", async () => {
+  const app = await readFile("src/app.js", "utf8");
+  assert.match(app, /sessionQuestionIds: \[\]/);
+  assert.match(app, /function sampleQuestionIds\(questions, count\)/);
+  assert.match(app, /const seenPrompts = new Set\(\)/);
+  assert.match(app, /if \(seenPrompts\.has\(question\.prompt\)\) continue/);
+  assert.match(app, /unique\.push\(question\.id\)/);
+  assert.match(app, /state\.sessionQuestionIds = sampleQuestionIds\(filteredQuestions\(\), 50\)/);
+  assert.match(app, /const readyCount = state\.mode === "timed" \? Math\.min\(50, questions\.length\) : questions\.length/);
+});
+
+test("practice mode appends random unseen questions", async () => {
+  const app = await readFile("src/app.js", "utf8");
+  assert.match(app, /practiceSeenIds: \[\]/);
+  assert.match(app, /function appendRandomPracticeQuestion\(\)/);
+  assert.match(app, /seenPrompts\.has\(question\.prompt\)/);
+  assert.match(app, /!seen\.has\(question\.id\) && !seenPrompts\.has\(question\.prompt\)/);
+  assert.match(app, /state\.sessionQuestionIds\.push\(next\.id\)/);
+  assert.match(app, /appendRandomPracticeQuestion\(\);/);
 });
 
 test("contest setup appears before the question flow starts", async () => {

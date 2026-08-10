@@ -16,6 +16,8 @@ const state = {
   paused: false,
   sessionActive: false,
   sessionContestId: "",
+  sessionQuestionIds: [],
+  practiceSeenIds: [],
   courseStarted: false
 };
 
@@ -211,7 +213,7 @@ function buildPracticeQuestions(data) {
 
   function generatedQuestion(contest, number) {
     const seed = (contest.year - 2010) * 13 + contest.grade * 17 + number * 19;
-    const part = partFor(number);
+    const part = partFor(((number - 1) % 25) + 1);
     const category = categories[Math.floor((number - 1) / 5) % categories.length];
     const pointValue = PART_POINTS[part];
     let prompt;
@@ -294,7 +296,7 @@ function buildPracticeQuestions(data) {
   }
 
   for (const contest of data.contests) {
-    for (let number = 1; number <= 25; number += 1) generated.push(generatedQuestion(contest, number));
+    for (let number = 1; number <= 100; number += 1) generated.push(generatedQuestion(contest, number));
   }
   return { ...data, questions: [...existing, ...generated] };
 }
@@ -397,6 +399,8 @@ function normalizeState() {
   state.elapsedSeconds = Math.max(0, Number(state.elapsedSeconds) || 0);
   state.sessionActive = false;
   state.courseStarted = false;
+  if (!Array.isArray(state.sessionQuestionIds)) state.sessionQuestionIds = [];
+  if (!Array.isArray(state.practiceSeenIds)) state.practiceSeenIds = [];
   if (state.sessionContestId && !state.data.contests.some((contest) => contest.id === state.sessionContestId)) {
     state.sessionContestId = "";
   }
@@ -407,6 +411,15 @@ function currentContest() {
 }
 
 function visibleQuestions() {
+  const filtered = filteredQuestions();
+  if (state.courseStarted && state.sessionQuestionIds.length) {
+    const filteredIds = new Set(filtered.map((question) => question.id));
+    return questionsFromIds(state.sessionQuestionIds).filter((question) => filteredIds.has(question.id));
+  }
+  return filtered;
+}
+
+function filteredQuestions() {
   return state.data.questions.filter((question) => {
     const contest = state.data.contests.find((item) => item.id === question.contestId);
     const attempt = state.attempts[question.id] || {};
@@ -424,8 +437,64 @@ function visibleQuestions() {
   });
 }
 
+function questionsFromIds(ids) {
+  const byId = new Map(state.data.questions.map((question) => [question.id, question]));
+  return ids.map((id) => byId.get(id)).filter(Boolean);
+}
+
+function shuffled(items) {
+  const copy = [...items];
+  for (let index = copy.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
+  }
+  return copy;
+}
+
+function sampleQuestionIds(questions, count) {
+  const seenPrompts = new Set();
+  const unique = [];
+  for (const question of shuffled(questions)) {
+    if (seenPrompts.has(question.prompt)) continue;
+    seenPrompts.add(question.prompt);
+    unique.push(question.id);
+    if (unique.length === count) break;
+  }
+  return unique;
+}
+
+function currentQuestion() {
+  return visibleQuestions()[state.currentIndex];
+}
+
+function appendRandomPracticeQuestion() {
+  const current = currentQuestion();
+  let seen = new Set([...state.practiceSeenIds, ...state.sessionQuestionIds]);
+  let seenPrompts = new Set(questionsFromIds([...state.practiceSeenIds, ...state.sessionQuestionIds]).map((question) => question.prompt));
+  let candidates = filteredQuestions().filter((question) => !seen.has(question.id) && !seenPrompts.has(question.prompt));
+  if (!candidates.length) {
+    state.practiceSeenIds = current ? [current.id] : [];
+    state.sessionQuestionIds = current ? [current.id] : [];
+    seen = new Set(state.sessionQuestionIds);
+    seenPrompts = new Set(questionsFromIds(state.sessionQuestionIds).map((question) => question.prompt));
+    candidates = filteredQuestions().filter((question) => !seen.has(question.id) && !seenPrompts.has(question.prompt));
+  }
+  const next = candidates[Math.floor(Math.random() * candidates.length)];
+  if (!next) return;
+  state.sessionQuestionIds.push(next.id);
+  state.practiceSeenIds.push(next.id);
+  state.currentIndex = state.sessionQuestionIds.length - 1;
+}
+
 function allQuestionsForSelectedContest() {
   return state.data.questions.filter((question) => question.contestId === currentContest().id);
+}
+
+function summaryQuestions() {
+  if (state.courseStarted && state.sessionQuestionIds.length) {
+    return questionsFromIds(state.sessionQuestionIds);
+  }
+  return allQuestionsForSelectedContest();
 }
 
 function clearSelectedContestAttempts() {
@@ -526,7 +595,7 @@ function sourceLinkMarkup(contest, question) {
 }
 
 function renderSummary() {
-  const questions = allQuestionsForSelectedContest();
+  const questions = summaryQuestions();
   const score = scoreAttempt(questions, state.attempts);
   $("scoreNumber").textContent = `${score.pointsEarned} / ${score.totalPossible}`;
   $("summaryGrid").innerHTML = [
@@ -558,11 +627,13 @@ function renderCategoryCards() {
 }
 
 function renderSetup() {
-  const questions = visibleQuestions();
+  const questions = filteredQuestions();
   const contest = currentContest();
   const topic = state.category === "all" ? "all categories" : state.category;
   const part = state.part === "all" ? "all parts" : `Part ${state.part}`;
-  $("setupSummary").textContent = `${contest.title} - ${topic} - ${part} - ${questions.length} question${questions.length === 1 ? "" : "s"} ready.`;
+  const readyCount = state.mode === "timed" ? Math.min(50, questions.length) : questions.length;
+  const readyLabel = state.mode === "timed" ? `${readyCount} random contest questions` : `${readyCount} practice question${readyCount === 1 ? "" : "s"}`;
+  $("setupSummary").textContent = `${contest.title} - ${topic} - ${part} - ${readyLabel} ready.`;
   $("contestSetup").classList.toggle("is-complete", state.courseStarted);
   $("practiceCourse").classList.toggle("is-hidden", !state.courseStarted);
 }
@@ -597,6 +668,8 @@ function exitActiveSessionForNavigation() {
   state.sessionActive = false;
   state.paused = false;
   state.courseStarted = false;
+  state.sessionQuestionIds = [];
+  state.practiceSeenIds = [];
 }
 
 function startCategoryPractice(category) {
@@ -607,6 +680,9 @@ function startCategoryPractice(category) {
   state.status = "all";
   state.currentIndex = 0;
   state.courseStarted = true;
+  state.sessionQuestionIds = [];
+  state.practiceSeenIds = [];
+  appendRandomPracticeQuestion();
   saveState();
   render();
 }
@@ -616,6 +692,9 @@ function beginPractice() {
   state.mode = "study";
   state.currentIndex = 0;
   state.courseStarted = true;
+  state.sessionQuestionIds = [];
+  state.practiceSeenIds = [];
+  appendRandomPracticeQuestion();
   saveState();
   render();
 }
@@ -631,6 +710,8 @@ function startContest() {
   state.sessionActive = true;
   state.sessionContestId = currentContest().id;
   state.courseStarted = true;
+  state.practiceSeenIds = [];
+  state.sessionQuestionIds = sampleQuestionIds(filteredQuestions(), 50);
   clearSelectedContestAttempts();
   saveState();
   render();
@@ -647,7 +728,7 @@ function finishContest(message) {
 }
 
 function exportCsv() {
-  const questions = allQuestionsForSelectedContest();
+  const questions = summaryQuestions();
   const rows = [["question", "part", "category", "selected", "correct", "elapsed_seconds", "bookmarked"]];
   for (const question of questions) {
     const attempt = state.attempts[question.id] || {};
@@ -717,7 +798,7 @@ function bindEvents() {
     render();
   });
   $("choices").addEventListener("change", (event) => {
-    const question = visibleQuestions()[state.currentIndex];
+    const question = currentQuestion();
     if (!question || state.attempts[question.id]?.solutionRevealed) {
       renderQuestion();
       return;
@@ -729,7 +810,7 @@ function bindEvents() {
     renderQuestion();
   });
   $("submitAnswer").addEventListener("click", () => {
-    const question = visibleQuestions()[state.currentIndex];
+    const question = currentQuestion();
     if (!question) return;
     const attempt = state.attempts[question.id] || {};
     if (state.mode === "timed" && state.sessionActive) {
@@ -746,13 +827,21 @@ function bindEvents() {
     render();
   });
   $("showSolution").addEventListener("click", () => {
-    const question = visibleQuestions()[state.currentIndex];
+    const question = currentQuestion();
     if (!question) return;
     setAttempt(question.id, { feedback: question.solutionText, solutionRevealed: true });
     render();
   });
   $("nextQuestion").addEventListener("click", () => {
-    state.currentIndex = Math.min(state.currentIndex + 1, Math.max(visibleQuestions().length - 1, 0));
+    if (state.mode === "study" && state.courseStarted) {
+      if (state.currentIndex < visibleQuestions().length - 1) {
+        state.currentIndex += 1;
+      } else {
+        appendRandomPracticeQuestion();
+      }
+    } else {
+      state.currentIndex = Math.min(state.currentIndex + 1, Math.max(visibleQuestions().length - 1, 0));
+    }
     saveState();
     render();
   });
@@ -762,13 +851,13 @@ function bindEvents() {
     render();
   });
   $("bookmarkQuestion").addEventListener("click", () => {
-    const question = visibleQuestions()[state.currentIndex];
+    const question = currentQuestion();
     if (!question) return;
     setAttempt(question.id, { bookmarked: !(state.attempts[question.id] || {}).bookmarked });
     render();
   });
   $("notes").addEventListener("input", (event) => {
-    const question = visibleQuestions()[state.currentIndex];
+    const question = currentQuestion();
     if (question) setAttempt(question.id, { notes: event.target.value });
   });
   $("categoryCards").addEventListener("click", (event) => {

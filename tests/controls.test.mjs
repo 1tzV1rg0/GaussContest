@@ -23,3 +23,13 @@ test("local practice generator builds full varied contest sets", async () => {
   assert.match(app, /Math\.floor\(\(number - 1\) \/ 5\) % categories\.length/);
   assert.match(app, /seed = \(contest\.year - 2010\) \* 13 \+ contest\.grade \* 17 \+ number \* 19/);
 });
+
+test("contest setup appears before the question flow starts", async () => {
+  const html = await readFile("index.html", "utf8");
+  const app = await readFile("src/app.js", "utf8");
+  assert.ok(html.indexOf('id="contestSetup"') < html.indexOf('id="practiceCourse"'));
+  assert.match(html, /<article[^>]*class="question-card is-hidden"[^>]*id="practiceCourse"/);
+  assert.match(app, /courseStarted: false/);
+  assert.match(app, /function beginPractice\(\)/);
+  assert.match(app, /"practiceCourse"\)\.classList\.toggle\("is-hidden", !state\.courseStarted\)/);
+});

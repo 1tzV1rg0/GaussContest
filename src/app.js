@@ -15,7 +15,8 @@ const state = {
   elapsedSeconds: 0,
   paused: false,
   sessionActive: false,
-  sessionContestId: ""
+  sessionContestId: "",
+  courseStarted: false
 };
 
 const $ = (id) => document.getElementById(id);
@@ -210,6 +211,7 @@ function normalizeState() {
   state.currentIndex = Number(state.currentIndex);
   state.elapsedSeconds = Math.max(0, Number(state.elapsedSeconds) || 0);
   state.sessionActive = false;
+  state.courseStarted = false;
   if (state.sessionContestId && !state.data.contests.some((contest) => contest.id === state.sessionContestId)) {
     state.sessionContestId = "";
   }
@@ -288,7 +290,9 @@ function renderQuestion() {
   const inTimedContest = state.mode === "timed" && state.sessionActive;
 
   $("contestTitle").textContent = contest.title;
-  $("contestMeta").textContent = inTimedContest
+  $("contestMeta").textContent = !state.courseStarted
+    ? "Complete contest setup before starting the question flow."
+    : inTimedContest
     ? `${questions.length} contest item${questions.length === 1 ? "" : "s"} shown. Answers are saved until you finish.`
     : `${questions.length} practice item${questions.length === 1 ? "" : "s"} shown. Official PDFs open in a new tab.`;
 
@@ -365,14 +369,22 @@ function renderCategoryCards() {
   }).join("");
 }
 
+function renderSetup() {
+  const questions = visibleQuestions();
+  const contest = currentContest();
+  const topic = state.category === "all" ? "all categories" : state.category;
+  const part = state.part === "all" ? "all parts" : `Part ${state.part}`;
+  $("setupSummary").textContent = `${contest.title} - ${topic} - ${part} - ${questions.length} question${questions.length === 1 ? "" : "s"} ready.`;
+  $("contestSetup").classList.toggle("is-complete", state.courseStarted);
+  $("practiceCourse").classList.toggle("is-hidden", !state.courseStarted);
+}
+
 function renderTimer() {
   const remaining = state.mode === "timed" ? Math.max(0, 3600 - state.elapsedSeconds) : 3600;
   $("timerText").textContent = formatTime(remaining);
-  $("startContest").disabled = state.sessionActive;
   $("pauseTimer").disabled = state.mode !== "timed" || !state.sessionActive;
   $("finishContest").disabled = state.mode !== "timed" || !state.sessionActive;
   $("pauseTimer").textContent = state.paused ? "Resume" : "Pause";
-  $("startContest").textContent = state.sessionActive ? "Started" : "Start";
 }
 
 function formatTime(seconds) {
@@ -387,15 +399,16 @@ function render() {
   renderQuestion();
   renderSummary();
   renderCategoryCards();
+  renderSetup();
   renderTimer();
   $("studyMode").classList.toggle("is-active", state.mode === "study");
   $("timedMode").classList.toggle("is-active", state.mode === "timed");
 }
 
 function exitActiveSessionForNavigation() {
-  if (!state.sessionActive) return;
   state.sessionActive = false;
   state.paused = false;
+  state.courseStarted = false;
 }
 
 function startCategoryPractice(category) {
@@ -405,6 +418,16 @@ function startCategoryPractice(category) {
   state.part = "all";
   state.status = "all";
   state.currentIndex = 0;
+  state.courseStarted = true;
+  saveState();
+  render();
+}
+
+function beginPractice() {
+  exitActiveSessionForNavigation();
+  state.mode = "study";
+  state.currentIndex = 0;
+  state.courseStarted = true;
   saveState();
   render();
 }
@@ -419,6 +442,7 @@ function startContest() {
   state.paused = false;
   state.sessionActive = true;
   state.sessionContestId = currentContest().id;
+  state.courseStarted = true;
   clearSelectedContestAttempts();
   saveState();
   render();
@@ -428,6 +452,7 @@ function finishContest(message) {
   if (!state.sessionActive) return;
   state.sessionActive = false;
   state.paused = false;
+  state.courseStarted = true;
   saveState();
   render();
   if (message) $("feedback").textContent = message;
@@ -574,6 +599,7 @@ function bindEvents() {
     state.mode = "study";
     state.paused = false;
     state.sessionActive = false;
+    state.courseStarted = false;
     saveState();
     render();
   });
@@ -581,10 +607,12 @@ function bindEvents() {
     state.mode = "timed";
     state.sessionActive = false;
     state.paused = false;
+    state.courseStarted = false;
     saveState();
     render();
   });
-  $("startContest").addEventListener("click", startContest);
+  $("beginPractice").addEventListener("click", beginPractice);
+  $("setupTimedStart").addEventListener("click", startContest);
   $("pauseTimer").addEventListener("click", () => {
     state.paused = !state.paused;
     saveState();

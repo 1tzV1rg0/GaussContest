@@ -51,7 +51,6 @@
           <div class="timer" aria-label="Timer">
             <span aria-hidden="true">[time]</span>
             <strong id="timerText">60:00</strong>
-            <button id="startContest" type="button" title="Start timed contest">Start</button>
             <button id="pauseTimer" type="button" title="Pause timer">Pause</button>
             <button id="finishContest" class="secondary" type="button" title="Finish contest">Finish</button>
           </div>
@@ -59,7 +58,18 @@
 
         <nav class="contest-strip" id="contestStrip" aria-label="Contest year picker"></nav>
 
-        <article class="question-card">
+        <section class="setup-card" id="contestSetup" aria-label="Contest setup">
+          <div>
+            <h2>Contest Setup</h2>
+            <p id="setupSummary">Choose your grade, year, and practice filters before starting.</p>
+          </div>
+          <div class="actions">
+            <button id="beginPractice" type="button" title="Begin practice">Begin Practice</button>
+            <button id="setupTimedStart" class="secondary" type="button" title="Start timed contest">Start Timed Contest</button>
+          </div>
+        </section>
+
+        <article class="question-card is-hidden" id="practiceCourse">
           <div class="question-topline">
             <span id="questionBadge"></span>
             <button id="bookmarkQuestion" class="icon-button" type="button" title="Bookmark question" aria-label="Bookmark question">+</button>

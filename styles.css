@@ -188,10 +188,26 @@ h2 {
   min-width: 74px;
 }
 
-.question-card {
+.question-card,
+.setup-card {
   display: grid;
   gap: 16px;
   padding: 18px;
+}
+
+.setup-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.setup-card.is-complete {
+  border-color: var(--accent);
+  background: var(--soft);
+}
+
+.is-hidden {
+  display: none;
 }
 
 .question-topline {

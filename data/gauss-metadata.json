@@ -93,7 +93,7 @@
       "part": "B",
       "pointValue": 6,
       "prompt": "A bag has 3 red tiles, 2 blue tiles, and 5 green tiles. If one tile is chosen at random, what is the probability it is not green?",
-      "choices": { "A": "1/5", "B": "1/2", "C": "3/5", "D": "2/3", "E": "5/10" },
+      "choices": { "A": "1/5", "B": "1/2", "C": "3/5", "D": "2/3", "E": "7/10" },
       "correctAnswer": "B",
       "solutionText": "There are 10 tiles total and 5 are not green. The probability is 5/10 = 1/2.",
       "primaryCategory": "Counting, Probability & Statistics",

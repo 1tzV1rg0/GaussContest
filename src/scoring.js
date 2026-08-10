@@ -64,6 +64,33 @@ export function scoreAttempt(questions, attempts) {
   return { correct, incorrect, unanswered, pointsEarned, totalPossible, byPart, byCategory };
 }
 
+function gcd(a, b) {
+  let x = Math.abs(a);
+  let y = Math.abs(b);
+  while (y) {
+    const next = x % y;
+    x = y;
+    y = next;
+  }
+  return x || 1;
+}
+
+export function normalizeChoiceValue(value) {
+  const trimmed = String(value).trim().toLowerCase();
+  const fraction = trimmed.match(/^(-?\d+)\s*\/\s*(-?\d+)$/);
+  if (fraction && Number(fraction[2]) !== 0) {
+    const numerator = Number(fraction[1]);
+    const denominator = Number(fraction[2]);
+    const divisor = gcd(numerator, denominator);
+    return `fraction:${numerator / divisor}/${denominator / divisor}`;
+  }
+
+  const decimal = trimmed.match(/^-?\d+(?:\.\d+)?$/);
+  if (decimal) return `number:${Number(trimmed)}`;
+
+  return `text:${trimmed.replace(/\s+/g, " ")}`;
+}
+
 export function validateGaussDataset(data) {
   const allowedGrades = new Set([7, 8]);
   const allowedYears = new Set(Array.from({ length: 10 }, (_, i) => 2016 + i));
@@ -85,6 +112,8 @@ export function validateGaussDataset(data) {
     if (!categories.has(question.primaryCategory)) errors.push(`${question.id} has invalid category`);
     if (Object.keys(question.choices || {}).sort().join("") !== "ABCDE") errors.push(`${question.id} must have choices A-E`);
     if (!question.correctAnswer || !question.choices?.[question.correctAnswer]) errors.push(`${question.id} has invalid answer key`);
+    const normalizedChoices = Object.values(question.choices || {}).map(normalizeChoiceValue);
+    if (new Set(normalizedChoices).size !== normalizedChoices.length) errors.push(`${question.id} has duplicate or equivalent choices`);
     if (!question.reviewStatus) errors.push(`${question.id} needs review status`);
     if (!question.sourceUrl) errors.push(`${question.id} needs a source URL`);
   }

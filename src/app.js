@@ -122,8 +122,8 @@ function buildPracticeQuestions(data) {
       part: "C",
       pointValue: 8,
       category: "Logic & Problem Solving",
-      prompt: () => "In a code, every shape is either shaded or outlined, and every shaded shape is a circle. Which statement must be true?",
-      choices: () => ({ A: "Every circle is shaded", B: "No outlined shape is a circle", C: "Every shaded shape is not outlined", D: "A shaded square is possible", E: "A shaded shape cannot be a square" }),
+      prompt: () => "In a code, every shaded shape is a circle, and no circle is a square. Which statement must be true?",
+      choices: () => ({ A: "Every circle is shaded", B: "No outlined shape is a circle", C: "Every shaded shape is outlined", D: "A shaded square is possible", E: "A shaded shape cannot be a square" }),
       answer: "E",
       solution: () => "If every shaded shape is a circle, then a shaded shape cannot be a square."
     }

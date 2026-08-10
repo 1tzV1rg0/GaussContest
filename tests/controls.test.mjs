@@ -58,6 +58,22 @@ test("contest setup appears before the question flow starts", async () => {
   assert.match(app, /"practiceCourse"\)\.classList\.toggle\("is-hidden", !state\.courseStarted\)/);
 });
 
+test("interface is split into setup practice and results pages", async () => {
+  const html = await readFile("index.html", "utf8");
+  const app = await readFile("src/app.js", "utf8");
+  const css = await readFile("styles.css", "utf8");
+  assert.match(html, /id="setupPage"/);
+  assert.match(html, /id="practicePage"/);
+  assert.match(html, /id="resultsPage"/);
+  assert.match(html, /class="page-tabs"/);
+  assert.match(app, /page: "setup"/);
+  assert.match(app, /function renderPages\(\)/);
+  assert.match(app, /state\.page = "practice"/);
+  assert.match(app, /state\.page = "results"/);
+  assert.match(css, /\.page-view/);
+  assert.match(css, /#setupPage/);
+});
+
 test("revealing a solution locks the question against later answers", async () => {
   const app = await readFile("src/app.js", "utf8");
   const css = await readFile("styles.css", "utf8");

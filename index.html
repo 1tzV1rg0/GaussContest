@@ -8,45 +8,78 @@
   </head>
   <body>
     <main class="app-shell">
-      <aside class="panel filters" aria-label="Practice filters">
+      <header class="app-header">
         <div class="brand">
           <strong>MathCon</strong>
           <span>MathCon: The best website for Gauss contest practice!</span>
         </div>
-        <label>Grade
-          <select id="gradeFilter" aria-label="Grade filter"></select>
-        </label>
-        <label>Year
-          <select id="yearFilter" aria-label="Year filter"></select>
-        </label>
-        <label>Topic
-          <select id="categoryFilter" aria-label="Topic category filter"></select>
-        </label>
-        <label>Part
-          <select id="partFilter" aria-label="Contest part filter"></select>
-        </label>
-        <label>Status
-          <select id="statusFilter" aria-label="Answer status filter">
-            <option value="all">All questions</option>
-            <option value="unanswered">Unanswered</option>
-            <option value="correct">Correct</option>
-            <option value="incorrect">Incorrect</option>
-            <option value="bookmarked">Bookmarked</option>
-          </select>
-        </label>
-        <div class="button-row">
-          <button id="studyMode" class="is-active" type="button" title="Study mode">Study</button>
-          <button id="timedMode" type="button" title="Timed contest mode">Timed</button>
-        </div>
-        <button id="exportSummary" class="secondary" type="button" title="Download attempt summary">Export CSV</button>
-        <p class="rights">Official contest, solution, and result PDFs are linked from CEMC, University of Waterloo. This app does not republish full contest booklets.</p>
-      </aside>
+        <nav class="page-tabs" aria-label="MathCon pages">
+          <button id="setupPageTab" class="is-active" type="button" data-page="setup">Setup</button>
+          <button id="practicePageTab" class="secondary" type="button" data-page="practice">Practice</button>
+          <button id="resultsPageTab" class="secondary" type="button" data-page="results">Results</button>
+        </nav>
+      </header>
 
-      <section class="workspace" aria-live="polite">
+      <section class="page-view" id="setupPage" aria-label="Setup page">
+        <aside class="panel filters" aria-label="Practice filters">
+          <label>Grade
+            <select id="gradeFilter" aria-label="Grade filter"></select>
+          </label>
+          <label>Year
+            <select id="yearFilter" aria-label="Year filter"></select>
+          </label>
+          <label>Topic
+            <select id="categoryFilter" aria-label="Topic category filter"></select>
+          </label>
+          <label>Part
+            <select id="partFilter" aria-label="Contest part filter"></select>
+          </label>
+          <label>Status
+            <select id="statusFilter" aria-label="Answer status filter">
+              <option value="all">All questions</option>
+              <option value="unanswered">Unanswered</option>
+              <option value="correct">Correct</option>
+              <option value="incorrect">Incorrect</option>
+              <option value="bookmarked">Bookmarked</option>
+            </select>
+          </label>
+          <div class="button-row">
+            <button id="studyMode" class="is-active" type="button" title="Study mode">Study</button>
+            <button id="timedMode" type="button" title="Timed contest mode">Timed</button>
+          </div>
+          <p class="rights">Official contest, solution, and result PDFs are linked from CEMC, University of Waterloo. This app does not republish full contest booklets.</p>
+        </aside>
+
+        <section class="setup-workspace">
+          <header class="toolbar">
+            <div>
+              <h1 id="contestTitle">MathCon</h1>
+              <p id="contestMeta">MathCon: The best website for Gauss contest practice!</p>
+            </div>
+          </header>
+          <nav class="contest-strip" id="contestStrip" aria-label="Contest year picker"></nav>
+          <section class="setup-card" id="contestSetup" aria-label="Contest setup">
+            <div>
+              <h2>Contest Setup</h2>
+              <p id="setupSummary">Choose your grade, year, and practice filters before starting.</p>
+            </div>
+            <div class="actions">
+              <button id="beginPractice" type="button" title="Begin practice">Begin Practice</button>
+              <button id="setupTimedStart" class="secondary" type="button" title="Start timed contest">Start Timed Contest</button>
+            </div>
+          </section>
+          <section class="category-browser">
+            <h2>Category Practice</h2>
+            <div id="categoryCards" class="category-grid"></div>
+          </section>
+        </section>
+      </section>
+
+      <section class="page-view is-hidden" id="practicePage" aria-label="Practice page">
         <header class="toolbar">
           <div>
-            <h1 id="contestTitle">MathCon</h1>
-            <p id="contestMeta">MathCon: The best website for Gauss contest practice!</p>
+            <h1 id="practiceTitle">Practice</h1>
+            <p id="practiceMeta">Start from Setup to load a practice or timed contest session.</p>
           </div>
           <div class="timer" aria-label="Timer">
             <span aria-hidden="true">[time]</span>
@@ -55,19 +88,6 @@
             <button id="finishContest" class="secondary" type="button" title="Finish contest">Finish</button>
           </div>
         </header>
-
-        <nav class="contest-strip" id="contestStrip" aria-label="Contest year picker"></nav>
-
-        <section class="setup-card" id="contestSetup" aria-label="Contest setup">
-          <div>
-            <h2>Contest Setup</h2>
-            <p id="setupSummary">Choose your grade, year, and practice filters before starting.</p>
-          </div>
-          <div class="actions">
-            <button id="beginPractice" type="button" title="Begin practice">Begin Practice</button>
-            <button id="setupTimedStart" class="secondary" type="button" title="Start timed contest">Start Timed Contest</button>
-          </div>
-        </section>
 
         <article class="question-card is-hidden" id="practiceCourse">
           <div class="question-topline">
@@ -89,22 +109,26 @@
           </label>
           <div class="source-links" id="sourceLinks"></div>
         </article>
-
-        <section class="category-browser">
-          <h2>Category Practice</h2>
-          <div id="categoryCards" class="category-grid"></div>
-        </section>
       </section>
 
-      <aside class="panel progress" aria-label="Progress and score">
-        <h2>Score Summary</h2>
-        <div class="score-number" id="scoreNumber">0 / 0</div>
-        <dl class="summary-grid" id="summaryGrid"></dl>
-        <h3>Answer Grid</h3>
-        <div id="answerGrid" class="answer-grid"></div>
-        <h3>By Category</h3>
-        <div id="categoryProgress"></div>
-      </aside>
+      <section class="page-view is-hidden" id="resultsPage" aria-label="Results page">
+        <aside class="panel progress" aria-label="Progress and score">
+          <div class="results-head">
+            <div>
+              <h1>Results</h1>
+              <p>Review your score, jump back to questions, or export your work.</p>
+            </div>
+            <button id="exportSummary" class="secondary" type="button" title="Download attempt summary">Export CSV</button>
+          </div>
+          <h2>Score Summary</h2>
+          <div class="score-number" id="scoreNumber">0 / 0</div>
+          <dl class="summary-grid" id="summaryGrid"></dl>
+          <h3>Answer Grid</h3>
+          <div id="answerGrid" class="answer-grid"></div>
+          <h3>By Category</h3>
+          <div id="categoryProgress"></div>
+        </aside>
+      </section>
     </main>
 
     <script src="src/gauss-data.js"></script>

@@ -18,7 +18,8 @@ const state = {
   sessionContestId: "",
   sessionQuestionIds: [],
   practiceSeenIds: [],
-  courseStarted: false
+  courseStarted: false,
+  page: "setup"
 };
 
 const $ = (id) => document.getElementById(id);
@@ -394,11 +395,13 @@ function normalizeState() {
   if (!["all", "A", "B", "C"].includes(state.part)) state.part = "all";
   if (!["all", "unanswered", "correct", "incorrect", "bookmarked"].includes(state.status)) state.status = "all";
   if (!["study", "timed"].includes(state.mode)) state.mode = "study";
+  if (!["setup", "practice", "results"].includes(state.page)) state.page = "setup";
   if (!Number.isFinite(Number(state.currentIndex)) || state.currentIndex < 0) state.currentIndex = 0;
   state.currentIndex = Number(state.currentIndex);
   state.elapsedSeconds = Math.max(0, Number(state.elapsedSeconds) || 0);
   state.sessionActive = false;
   state.courseStarted = false;
+  state.page = "setup";
   if (!Array.isArray(state.sessionQuestionIds)) state.sessionQuestionIds = [];
   if (!Array.isArray(state.practiceSeenIds)) state.practiceSeenIds = [];
   if (state.sessionContestId && !state.data.contests.some((contest) => contest.id === state.sessionContestId)) {
@@ -553,11 +556,15 @@ function renderQuestion() {
   const inTimedContest = state.mode === "timed" && state.sessionActive;
 
   $("contestTitle").textContent = contest.title;
+  $("practiceTitle").textContent = contest.title;
   $("contestMeta").textContent = !state.courseStarted
     ? "MathCon: The best website for Gauss contest practice!"
     : inTimedContest
     ? `${questions.length} contest item${questions.length === 1 ? "" : "s"} shown. Answers are saved until you finish.`
     : `${questions.length} practice item${questions.length === 1 ? "" : "s"} shown. Official PDFs open in a new tab.`;
+  $("practiceMeta").textContent = state.courseStarted
+    ? $("contestMeta").textContent
+    : "Start from Setup to load a practice or timed contest session.";
 
   if (!question) {
     $("questionBadge").textContent = "No matching questions";
@@ -647,6 +654,14 @@ function renderSetup() {
   $("practiceCourse").classList.toggle("is-hidden", !state.courseStarted);
 }
 
+function renderPages() {
+  ["setup", "practice", "results"].forEach((page) => {
+    $(`${page}Page`).classList.toggle("is-hidden", state.page !== page);
+    $(`${page}PageTab`).classList.toggle("is-active", state.page === page);
+    $(`${page}PageTab`).classList.toggle("secondary", state.page !== page);
+  });
+}
+
 function renderTimer() {
   const remaining = state.mode === "timed" ? Math.max(0, 3600 - state.elapsedSeconds) : 3600;
   $("timerText").textContent = formatTime(remaining);
@@ -669,6 +684,7 @@ function render() {
   renderCategoryCards();
   renderSetup();
   renderTimer();
+  renderPages();
   $("studyMode").classList.toggle("is-active", state.mode === "study");
   $("timedMode").classList.toggle("is-active", state.mode === "timed");
 }
@@ -679,6 +695,7 @@ function exitActiveSessionForNavigation() {
   state.courseStarted = false;
   state.sessionQuestionIds = [];
   state.practiceSeenIds = [];
+  state.page = "setup";
 }
 
 function startCategoryPractice(category) {
@@ -689,6 +706,7 @@ function startCategoryPractice(category) {
   state.status = "all";
   state.currentIndex = 0;
   state.courseStarted = true;
+  state.page = "practice";
   state.sessionQuestionIds = [];
   state.practiceSeenIds = [];
   appendRandomPracticeQuestion();
@@ -701,6 +719,7 @@ function beginPractice() {
   state.mode = "study";
   state.currentIndex = 0;
   state.courseStarted = true;
+  state.page = "practice";
   state.sessionQuestionIds = [];
   state.practiceSeenIds = [];
   appendRandomPracticeQuestion();
@@ -719,6 +738,7 @@ function startContest() {
   state.sessionActive = true;
   state.sessionContestId = currentContest().id;
   state.courseStarted = true;
+  state.page = "practice";
   state.practiceSeenIds = [];
   state.sessionQuestionIds = sampleQuestionIds(filteredQuestions(), 50);
   clearSelectedContestAttempts();
@@ -731,6 +751,7 @@ function finishContest(message) {
   state.sessionActive = false;
   state.paused = false;
   state.courseStarted = true;
+  state.page = "results";
   saveState();
   render();
   if (message) $("feedback").textContent = message;
@@ -882,6 +903,14 @@ function bindEvents() {
     state.status = "all";
     state.currentIndex = visibleQuestions().findIndex((question) => question.id === button.dataset.jumpId);
     if (state.currentIndex < 0) state.currentIndex = 0;
+    state.page = "practice";
+    saveState();
+    render();
+  });
+  document.querySelector(".page-tabs").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-page]");
+    if (!button) return;
+    state.page = button.dataset.page;
     saveState();
     render();
   });

@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gauss Contest Practice</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="panel filters" aria-label="Practice filters">
+        <div class="brand">
+          <strong>Gauss Practice</strong>
+          <span>CEMC Grade 7 and 8 links</span>
+        </div>
+        <label>Grade
+          <select id="gradeFilter" aria-label="Grade filter"></select>
+        </label>
+        <label>Year
+          <select id="yearFilter" aria-label="Year filter"></select>
+        </label>
+        <label>Topic
+          <select id="categoryFilter" aria-label="Topic category filter"></select>
+        </label>
+        <label>Part
+          <select id="partFilter" aria-label="Contest part filter"></select>
+        </label>
+        <label>Status
+          <select id="statusFilter" aria-label="Answer status filter">
+            <option value="all">All questions</option>
+            <option value="unanswered">Unanswered</option>
+            <option value="correct">Correct</option>
+            <option value="incorrect">Incorrect</option>
+            <option value="bookmarked">Bookmarked</option>
+          </select>
+        </label>
+        <div class="button-row">
+          <button id="studyMode" class="is-active" type="button" title="Study mode">Study</button>
+          <button id="timedMode" type="button" title="Timed contest mode">Timed</button>
+        </div>
+        <button id="exportSummary" class="secondary" type="button" title="Download attempt summary">Export CSV</button>
+        <p class="rights">Official contest, solution, and result PDFs are linked from CEMC, University of Waterloo. This app does not republish full contest booklets.</p>
+      </aside>
+
+      <section class="workspace" aria-live="polite">
+        <header class="toolbar">
+          <div>
+            <h1 id="contestTitle">Gauss Grade 7 Practice</h1>
+            <p id="contestMeta">Choose a contest and answer practice items by category.</p>
+          </div>
+          <div class="timer" aria-label="Timer">
+            <span aria-hidden="true">[time]</span>
+            <strong id="timerText">60:00</strong>
+            <button id="pauseTimer" type="button" title="Pause timer">Pause</button>
+          </div>
+        </header>
+
+        <nav class="contest-strip" id="contestStrip" aria-label="Contest year picker"></nav>
+
+        <article class="question-card">
+          <div class="question-topline">
+            <span id="questionBadge"></span>
+            <button id="bookmarkQuestion" class="icon-button" type="button" title="Bookmark question" aria-label="Bookmark question">☆</button>
+          </div>
+          <h2 id="questionPrompt"></h2>
+          <div id="choices" class="choices" role="radiogroup" aria-label="Answer choices"></div>
+          <div class="actions">
+            <button id="submitAnswer" type="button" title="Check answer">Check</button>
+            <button id="showSolution" class="secondary" type="button" title="Show solution">Solution</button>
+            <button id="prevQuestion" class="secondary" type="button" title="Previous question">Prev</button>
+            <button id="nextQuestion" class="secondary" type="button" title="Next question">Next</button>
+          </div>
+          <section id="feedback" class="feedback" aria-live="polite"></section>
+          <label class="notes">Notes
+            <textarea id="notes" rows="3" placeholder="Add a strategy note or reminder"></textarea>
+          </label>
+          <div class="source-links" id="sourceLinks"></div>
+        </article>
+
+        <section class="category-browser">
+          <h2>Category Practice</h2>
+          <div id="categoryCards" class="category-grid"></div>
+        </section>
+      </section>
+
+      <aside class="panel progress" aria-label="Progress and score">
+        <h2>Score Summary</h2>
+        <div class="score-number" id="scoreNumber">0 / 0</div>
+        <dl class="summary-grid" id="summaryGrid"></dl>
+        <h3>Answer Grid</h3>
+        <div id="answerGrid" class="answer-grid"></div>
+        <h3>By Category</h3>
+        <div id="categoryProgress"></div>
+      </aside>
+    </main>
+
+    <script type="module" src="src/app.js"></script>
+  </body>
+</html>

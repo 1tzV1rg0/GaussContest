@@ -123,14 +123,44 @@ function buildPracticeQuestions(data) {
       choiceData = makeChoices(answer, seed);
       visual = { type: "groups", title: "Practice packs", count: Math.min(packs, 18), perGroup: each, bonus };
     } else if (category === "Algebra & Patterns") {
-      const first = contest.grade + (contest.year % 7) + number;
-      const step = 2 + (number % 5);
-      const term = 4 + (number % 4);
-      const answer = first + (term - 1) * step;
-      prompt = `A pattern starts at ${first} and increases by ${step} each time. What is term ${term}?`;
-      solutionText = `Term ${term} is ${first} + ${term - 1} x ${step} = ${answer}.`;
-      choiceData = makeChoices(answer, seed);
-      visual = { type: "numberLine", title: "Pattern steps", start: first, step, term };
+      const variant = seed % 4;
+      if (variant === 0) {
+        const multiplier = 2 + (number % 5);
+        const x = contest.grade + 2 + (number % 7);
+        const addend = 3 + (contest.year % 6);
+        const total = multiplier * x + addend;
+        prompt = `Solve for x: ${multiplier}x + ${addend} = ${total}.`;
+        solutionText = `Subtract ${addend} from both sides to get ${multiplier}x = ${total - addend}. Then x = ${x}.`;
+        choiceData = makeChoices(x, seed, (value) => `x = ${value}`);
+        visual = { type: "numberLine", title: "Equation balance", start: addend, step: multiplier, term: x + 1 };
+      } else if (variant === 1) {
+        const x = 2 + (contest.grade % 5) + (number % 4);
+        const coefficient = 3 + (number % 4);
+        const constant = 4 + (contest.year % 5);
+        const answer = coefficient * x - constant;
+        prompt = `If x = ${x}, what is the value of ${coefficient}x - ${constant}?`;
+        solutionText = `Substitute ${x} for x: ${coefficient}(${x}) - ${constant} = ${coefficient * x} - ${constant} = ${answer}.`;
+        choiceData = makeChoices(answer, seed);
+        visual = { type: "groups", title: `${coefficient} groups of x`, count: coefficient, perGroup: x, bonus: -constant };
+      } else if (variant === 2) {
+        const x = contest.grade + 4 + (number % 6);
+        const removed = 2 + (number % 5);
+        const result = x - removed;
+        const answer = x;
+        prompt = `A number x has ${removed} subtracted from it, and the result is ${result}. What is x?`;
+        solutionText = `The equation is x - ${removed} = ${result}. Add ${removed} to both sides: x = ${answer}.`;
+        choiceData = makeChoices(answer, seed, (value) => `x = ${value}`);
+        visual = { type: "numberLine", title: "Undo subtraction", start: result, step: removed, term: 2 };
+      } else {
+        const first = contest.grade + (contest.year % 7) + number;
+        const step = 2 + (number % 5);
+        const term = 4 + (number % 4);
+        const answer = first + (term - 1) * step;
+        prompt = `A pattern follows the rule value = ${first} + ${step}(n - 1). What is the value when n = ${term}?`;
+        solutionText = `Substitute n = ${term}: ${first} + ${step}(${term - 1}) = ${answer}.`;
+        choiceData = makeChoices(answer, seed);
+        visual = { type: "numberLine", title: "Linear rule", start: first, step, term };
+      }
     } else if (category === "Geometry & Measurement") {
       const length = contest.grade + 3 + (number % 6);
       const width = 4 + (contest.year % 5) + (number % 3);
@@ -226,12 +256,13 @@ function renderVisual(visual) {
   }
 
   if (visual.type === "groups") {
+    const bonusText = visual.bonus < 0 ? String(visual.bonus) : `+${visual.bonus}`;
     return `
       <figure class="question-visual" aria-label="${visual.title}">
         <figcaption>${visual.title}</figcaption>
         <div class="tile-groups">
           ${Array.from({ length: visual.count }, () => `<span>${visual.perGroup}</span>`).join("")}
-          <strong>+${visual.bonus}</strong>
+          <strong>${bonusText}</strong>
         </div>
       </figure>
     `;

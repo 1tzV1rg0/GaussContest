@@ -58,3 +58,12 @@ test("generated questions can include visual diagrams", async () => {
   assert.match(css, /\.question-visual/);
   assert.match(css, /\.bar-chart/);
 });
+
+test("algebra practice includes variable equations", async () => {
+  const app = await readFile("src/app.js", "utf8");
+  assert.match(app, /Solve for x:/);
+  assert.match(app, /If x = /);
+  assert.match(app, /x has \$\{removed\} subtracted/);
+  assert.match(app, /value = \$\{first\} \+ \$\{step\}\(n - 1\)/);
+  assert.match(app, /x = \$\{value\}/);
+});

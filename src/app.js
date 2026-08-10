@@ -296,7 +296,7 @@ function buildPracticeQuestions(data) {
   }
 
   for (const contest of data.contests) {
-    for (let number = 1; number <= 100; number += 1) generated.push(generatedQuestion(contest, number));
+    for (let number = 1; number <= 50; number += 1) generated.push(generatedQuestion(contest, number));
   }
   return { ...data, questions: [...existing, ...generated] };
 }
@@ -453,12 +453,21 @@ function shuffled(items) {
 
 function sampleQuestionIds(questions, count) {
   const seenPrompts = new Set();
+  const seenIds = new Set();
   const unique = [];
-  for (const question of shuffled(questions)) {
+  const randomized = shuffled(questions);
+  for (const question of randomized) {
     if (seenPrompts.has(question.prompt)) continue;
     seenPrompts.add(question.prompt);
+    seenIds.add(question.id);
     unique.push(question.id);
     if (unique.length === count) break;
+  }
+  for (const question of randomized) {
+    if (unique.length === count) break;
+    if (seenIds.has(question.id)) continue;
+    seenIds.add(question.id);
+    unique.push(question.id);
   }
   return unique;
 }
